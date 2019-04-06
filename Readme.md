@@ -13,7 +13,8 @@ The entry point is simply:
 M-x poetry
 ```
 The interface should then be pretty much self-explanatory:
-![screenshot](doc/screenshot1.png)
+
+<img src="doc/screenshot1.png" alt="screenshot" width="600"/>
 
 
 ## Installation
