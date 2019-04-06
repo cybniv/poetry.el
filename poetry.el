@@ -74,7 +74,7 @@
 (defun poetry-check ()
   "Checks the validity of the pyproject.toml file."
   (interactive)
-  (poetry-call 'check))
+  (poetry-call 'check t))
 
 (defun poetry-install ()
   "Installs the project dependencies."
@@ -116,11 +116,6 @@
   (interactive "DProject path: ")
   (poetry-call 'new nil path))
 
-(defun poetry-check ()
-  "Checks the validity of the pyproject.toml file."
-  (interactive)
-  (poetry-call 'check t))
-
 (defun poetry-run (command)
   "Runs a command in the appropriate environment."
   (interactive "sCommand: ")
@@ -144,11 +139,32 @@
 ;; Helpers
 (defun poetry-call (command &optional output &rest args)
   "Call poetry COMMAND with the given ARGS"
-  (apply 'start-process (concatenate 'list (list "poetry" " *poetry*"
-                                             "poetry" (symbol-name command))
-                                     args))
-  (when output
-    (view-buffer-other-window " *poetry*")))
+  (let* ((command (concatenate 'list (list "poetry" (symbol-name command))
+                              args))
+        (proc (make-process :name "poetry"
+                            :buffer " *poetry*"
+                            :command command
+                            :sentinel 'poetry-call-sentinel)))
+    (process-put proc 'output output)))
+
+(defun poetry-call-sentinel (process string)
+  "Poetry call sentinel."
+  (let ((output (process-get process 'output)))
+    (if (string-match "\\(^failed.*\\|exited abnormally.*\\)" string)
+        (progn
+          (message "Poetry process exited abnormally")
+          (poetry-display-buffer))
+      (if output
+          (poetry-display-buffer)))))
+
+(defun poetry-display-buffer ()
+  (with-current-buffer " *poetry*"
+    (let ((buffer-read-only nil))
+      (xterm-color-colorize-buffer)
+      (goto-char (point-min))
+      (while (search-forward "" (point-max) t)
+        (replace-match "\n"))
+      (display-buffer " *poetry*"))))
 
 (defun poetry-get-dependencies ()
   "Return the list of project dependencies."
