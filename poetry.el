@@ -29,11 +29,11 @@
 ;; Transient interface
 (define-transient-command poetry ()
   "Poetry menu."
-  :man-page "poetry"
   [:if poetry-find-project-root
    :description "Dependencies"
     ("a" "Add" poetry-add)
     ("r" "Remove" poetry-remove)
+    ("d" "Remove (dev)" poetry-remove-dev)
     ("i" "Install" poetry-install)
     ("l" "Lock" poetry-lock)
     ("u" "Update" poetry-update)
@@ -56,12 +56,70 @@
   ["Poetry"
    ("u" "Update" poetry-update)])
 
-;; Poetry commands
-(defun poetry-add (package)
+;; Poetry add
+(define-transient-command poetry-add ()
+  "Poetry add dependency menu."
+  ["Arguments"
+   (poetry:--git)
+   (poetry:--path)
+   (poetry:--python)
+   (poetry:--platform)
+   ]
+  ["Add"
+   ("a" "Add a dependency" poetry-add-dep)
+   ("d" "Add a development dependency" poetry-add-dev-dep)
+   ("o" "Add an optional dependency" poetry-add-opt-dep)
+   ])
+
+(define-infix-argument poetry:--git ()
+  :description "Git repository"
+  :class 'transient-option
+  :key "-g"
+  :argument "--git=")
+
+(define-infix-argument poetry:--path ()
+  :description "Dependency path"
+  :class 'transient-option
+  :key "-P"
+  :argument "--path=")
+
+(define-infix-argument poetry:--python ()
+  :description "Python version"
+  :class 'transient-option
+  :key "-p"
+  :argument "--python=")
+
+(define-infix-argument poetry:--platform ()
+  :description "Platforms"
+  :class 'transient-option
+  :key "-t"
+  :argument "--platform=")
+
+(defun poetry-call-add (package args)
+  "Add PACKAGE as a new dependency to the project."
+  (let ((args (concatenate 'list args
+                           (transient-args 'poetry-add))))
+    (message "args: %s" args)
+    (poetry-call 'add nil (concatenate 'list
+                                       (list package)
+                                       args))))
+
+(defun poetry-add-dep (package)
   "Add PACKAGE as a new dependency to the project."
   (interactive "sPackage name: ")
-  (poetry-call 'add nil package))
+  (poetry-call-add package '()))
 
+(defun poetry-add-dev-dep (package)
+  "Add PACKAGE as a new development dependency to the project."
+  (interactive "sPackage name: ")
+  (poetry-call-add package '("-D")))
+
+(defun poetry-add-opt-dep (package)
+  "Add PACKAGE as a new optional dependency to the project."
+  (interactive "sPackage name: ")
+  (poetry-call-add package '("--optional")))
+
+;; Poetry remove
 (defun poetry-remove (package)
   "Removes PACKAGE from the project dependencies."
   (interactive (list (car (split-string
@@ -69,7 +127,16 @@
                                             (poetry-get-dependencies)
                                             nil 'confirm)
                            "[[:space:]]+"))))
-  (poetry-call 'remove nil package))
+  (poetry-call 'remove nil (list package)))
+
+(defun poetry-remove-dev (package)
+  "Removes PACKAGE from the project development dependencies."
+  (interactive (list (car (split-string
+                           (completing-read "Package: "
+                                            (poetry-get-dependencies t)
+                                            nil 'confirm)
+                           "[[:space:]]+"))))
+  (poetry-call 'remove nil (list package "-D")))
 
 (defun poetry-check ()
   "Checks the validity of the pyproject.toml file."
@@ -119,12 +186,14 @@
 (defun poetry-run (command)
   "Runs a command in the appropriate environment."
   (interactive "sCommand: ")
-  (poetry-call 'run nil command))
+  (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
 (defun poetry-shell ()
   "Spawns a shell within the virtual environment."
   (interactive)
-  (poetry-call 'shell))
+  (shell "*poetry-shell*")
+  (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
+                       "poetry shell\n"))
 
 (defun poetry-clear ()
   "Clears poetry's cache."
@@ -137,10 +206,14 @@
   (poetry-call 'update))
 
 ;; Helpers
-(defun poetry-call (command &optional output &rest args)
+(defun poetry-call (command &optional output args)
   "Call poetry COMMAND with the given ARGS"
-  (let* ((command (concatenate 'list (list "poetry" (symbol-name command))
-                              args))
+  (let* ((command (if (string= command "run")
+                      (concatenate 'list (list "poetry" (symbol-name command))
+                                   args)
+                    (concatenate 'list (list "poetry" "-n" "--no-ansi"
+                                                      (symbol-name command))
+                                          args)))
         (proc (make-process :name "poetry"
                             :buffer " *poetry*"
                             :command command
@@ -150,7 +223,7 @@
 (defun poetry-call-sentinel (process string)
   "Poetry call sentinel."
   (let ((output (process-get process 'output)))
-    (if (string-match "\\(^failed.*\\|exited abnormally.*\\)" string)
+    (if (not (string-match "^finished" string))
         (progn
           (message "Poetry process exited abnormally")
           (poetry-display-buffer))
@@ -160,18 +233,21 @@
 (defun poetry-display-buffer ()
   (with-current-buffer " *poetry*"
     (let ((buffer-read-only nil))
-      (xterm-color-colorize-buffer)
-      (goto-char (point-min))
-      (while (search-forward "" (point-max) t)
-        (replace-match "\n"))
+      ;; (xterm-color-colorize-buffer)
+      ;; (goto-char (point-min))
+      ;; (while (search-forward "" (point-max) t)
+      ;;   (replace-match "\n"))
       (display-buffer " *poetry*"))))
 
-(defun poetry-get-dependencies ()
-  "Return the list of project dependencies."
+(defun poetry-get-dependencies (&optional dev)
+  "Return the list of project dependencies.
+
+if DEV is non-nil, return the dev dependencies."
   (interactive)
   (let* ((pyproject-file (poetry-find-pyproject-file))
          (pyproject (toml:read-from-file pyproject-file))
-         (dependencies (cdr (assoc "dependencies"
+         (category (if dev "dev-dependencies" "dependencies"))
+         (dependencies (cdr (assoc category
                                    (assoc "poetry"
                                           (assoc "tool" pyproject))))))
     (map 'list (lambda (elem) (format "%s (%s)" (car elem) (cdr elem)))
