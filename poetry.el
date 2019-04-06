@@ -38,23 +38,23 @@
     ("l" "Lock" poetry-lock)
     ("u" "Update" poetry-update)
     ("s" "Show" poetry-show)]
-  [:if poetry-find-project-root
-   :description "Packages"
-   ("b" "Build" poetry-build)
-   ("p" "Publish" poetry-publish)]
-  ["Project"
+  [["Project"
    ("I" "Init" poetry-init)
    ("n" "New" poetry-new)
    ("c" "Check" poetry-check)]
   [:if poetry-find-project-root
+   :description "Packages"
+   ("b" "Build" poetry-build)
+   ("p" "Publish" poetry-publish)]]
+  [[:if poetry-find-project-root
    :description "Shell"
-   ("R" "Run" poetry-run)
+   ("R" "Run a command" poetry-run)
    ("S" "Start a shell" poetry-shell)]
-  [:if poetry-find-project-root
-   :description "Cache"
-   ("C" "Clear" poetry-clear)]
+  ;; [:if poetry-find-project-root
+  ;;  :description "Cache"
+  ;;  ("C" "Clear" poetry-clear)]
   ["Poetry"
-   ("u" "Update" poetry-update)])
+   ("U" "Update" poetry-self-update)]])
 
 ;; Poetry add
 (define-transient-command poetry-add ()
@@ -198,12 +198,12 @@
 (defun poetry-clear ()
   "Clears poetry's cache."
   (interactive)
-  (poetry-call 'clear))
+  (poetry-call 'cache:clear))
 
-(defun poetry-update ()
-  "Update dependencies as according to the pyproject.toml file."
+(defun poetry-self-update ()
+  "Updates poetry to the latest version."
   (interactive)
-  (poetry-call 'update))
+  (poetry-call 'self:update))
 
 ;; Helpers
 (defun poetry-call (command &optional output args)
