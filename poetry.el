@@ -23,13 +23,14 @@
 ;;; Code:
 
 (require 'transient)
+(require 'toml)
 
 
 ;; Transient interface
 (define-transient-command poetry ()
   "Poetry menu."
   :man-page "poetry"
-  [:if poetry-is-in-project
+  [:if poetry-find-project-root
    :description "Dependencies"
     ("a" "Add" poetry-add)
     ("r" "Remove" poetry-remove)
@@ -37,7 +38,7 @@
     ("l" "Lock" poetry-lock)
     ("u" "Update" poetry-update)
     ("s" "Show" poetry-show)]
-  [:if poetry-is-in-project
+  [:if poetry-find-project-root
    :description "Packages"
    ("b" "Build" poetry-build)
    ("p" "Publish" poetry-publish)]
@@ -45,11 +46,11 @@
    ("I" "Init" poetry-init)
    ("n" "New" poetry-new)
    ("c" "Check" poetry-check)]
-  [:if poetry-is-in-project
+  [:if poetry-find-project-root
    :description "Shell"
    ("R" "Run" poetry-run)
    ("S" "Start a shell" poetry-shell)]
-  [:if poetry-is-in-project
+  [:if poetry-find-project-root
    :description "Cache"
    ("C" "Clear" poetry-clear)]
   ["Poetry"
@@ -63,8 +64,11 @@
 
 (defun poetry-remove (package)
   "Removes PACKAGE from the project dependencies."
-  (interactive (list (completing-read "Package: " (poetry-get-dependencies)
-                                      nil 'confirm)))
+  (interactive (list (car (split-string
+                           (completing-read "Package: "
+                                            (poetry-get-dependencies)
+                                            nil 'confirm)
+                           "[[:space:]]+"))))
   (poetry-call 'remove nil package))
 
 (defun poetry-check ()
@@ -149,16 +153,49 @@
 (defun poetry-get-dependencies ()
   "Return the list of project dependencies."
   (interactive)
-  '())
+  (let* ((pyproject-file (poetry-find-pyproject-file))
+         (pyproject (toml:read-from-file pyproject-file))
+         (dependencies (cdr (assoc "dependencies"
+                                   (assoc "poetry"
+                                          (assoc "tool" pyproject))))))
+    (map 'list (lambda (elem) (format "%s (%s)" (car elem) (cdr elem)))
+         dependencies)))
 
-(defun poetry-is-in-project ()
-  "Return t if in a poetry project."
-  ;; (with-temp-buffer
-  ;;   (call-process "poetry" nil t nil "version")
-  ;;   (not (string-match "RuntimeError" (buffer-substring
-  ;;                                      (point-min)
-  ;;                                      (point-max))))))
-  t)
+(defun poetry-find-project-root ()
+  "Return the poetry project root if any."
+  (locate-dominating-file default-directory "pyproject.toml"))
+
+(defun poetry-find-pyproject-file ()
+  "Return the location of the 'pyproject.toml' file."
+  (let ((root (poetry-find-project-root)))
+    (when root
+      (concat (file-name-as-directory root) "pyproject.toml"))))
+
+;; toml fixes
+;; support hyphens (-) in group/var names
+(defun toml:read-keygroup ()
+  (toml:seek-readable-point)
+  (let (keygroup)
+    (while (and (not (toml:end-of-buffer-p))
+                (char-equal (toml:get-char-at-point) ?\[))
+      (if (toml:search-forward "\\[\\([a-zA-Z][a-zA-Z0-9_\\.-]*\\)\\]")
+          (let ((keygroup-string (match-string-no-properties 1)))
+            (when (string-match "\\(_\\|\\.\\)\\'" keygroup-string)
+              (signal 'toml-keygroup-error (list (point))))
+            (setq keygroup (split-string (match-string-no-properties 1) "\\.")))
+        (signal 'toml-keygroup-error (list (point))))
+      (toml:seek-readable-point))
+    keygroup))
+
+(defun toml:read-key ()
+  (toml:seek-readable-point)
+  (if (toml:end-of-buffer-p) nil
+    (if (toml:search-forward "\\([a-zA-Z][a-zA-Z0-9_-]*\\) *= *")
+        (let ((key (match-string-no-properties 1)))
+          (when (string-match "_\\'" key)
+            (signal 'toml-key-error (list (point))))
+          key)
+      (signal 'toml-key-error (list (point))))))
 
 (provide 'poetry)
 ;;; poetry.el ends here
