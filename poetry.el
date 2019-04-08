@@ -22,11 +22,15 @@
 
 ;;; Code:
 
+(require 'cl)
 (require 'transient)
-(require 'toml)
+
+(defconst poetry-version "0.1.0"
+  "Poetry.el version")
 
 
 ;; Transient interface
+;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
   [:if poetry-find-project-root
@@ -38,10 +42,12 @@
     ("l" "Lock" poetry-lock)
     ("u" "Update" poetry-update)
     ("s" "Show" poetry-show)]
-  [["Project"
-   ("I" "Init" poetry-init)
-   ("n" "New" poetry-new)
-   ("c" "Check" poetry-check)]
+  [["New project"
+   ;; ("I" "Init" poetry-init)
+    ("n" "New" poetry-new)]
+   [:if poetry-find-project-root
+    :description "Project"
+    ("c" "Check" poetry-check)]
   [:if poetry-find-project-root
    :description "Packages"
    ("b" "Build" poetry-build)
@@ -99,27 +105,33 @@
   "Add PACKAGE as a new dependency to the project."
   (let ((args (concatenate 'list args
                            (transient-args 'poetry-add))))
-    (message "args: %s" args)
     (poetry-call 'add nil (concatenate 'list
                                        (list package)
                                        args))))
 
+;;;###autoload
 (defun poetry-add-dep (package)
   "Add PACKAGE as a new dependency to the project."
   (interactive "sPackage name: ")
+  (poetry-message (format "Adding dependency: %s" package))
   (poetry-call-add package '()))
 
+;;;###autoload
 (defun poetry-add-dev-dep (package)
   "Add PACKAGE as a new development dependency to the project."
   (interactive "sPackage name: ")
+  (poetry-message (format "Adding dev dependency: %s" package))
   (poetry-call-add package '("-D")))
 
+;;;###autoload
 (defun poetry-add-opt-dep (package)
   "Add PACKAGE as a new optional dependency to the project."
   (interactive "sPackage name: ")
+  (poetry-message (format "Adding optional dependency: %s" package))
   (poetry-call-add package '("--optional")))
 
 ;; Poetry remove
+;;;###autoload
 (defun poetry-remove (package)
   "Removes PACKAGE from the project dependencies."
   (interactive (list (car (split-string
@@ -129,6 +141,7 @@
                            "[[:space:]]+"))))
   (poetry-call 'remove nil (list package)))
 
+;;;###autoload
 (defun poetry-remove-dev (package)
   "Removes PACKAGE from the project development dependencies."
   (interactive (list (car (split-string
@@ -138,56 +151,69 @@
                            "[[:space:]]+"))))
   (poetry-call 'remove nil (list package "-D")))
 
+;;;###autoload
 (defun poetry-check ()
   "Checks the validity of the pyproject.toml file."
   (interactive)
   (poetry-call 'check t))
 
+;;;###autoload
 (defun poetry-install ()
   "Installs the project dependencies."
   (interactive)
   (poetry-call 'install))
 
+;;;###autoload
 (defun poetry-lock ()
   "Locks the project dependencies."
   (interactive)
   (poetry-call 'lock))
 
+;;;###autoload
 (defun poetry-update ()
   "Update dependencies as according to the pyproject.toml file."
   (interactive)
   (poetry-call 'update))
 
+;;;###autoload
 (defun poetry-show ()
   "Shows information about packages."
   (interactive)
   (poetry-call 'show))
 
+;;;###autoload
 (defun poetry-build ()
   "Builds a package, as a tarball and a wheel by default."
   (interactive)
   (poetry-call 'build))
 
+;;;###autoload
 (defun poetry-publish ()
   "Publishes a package to a remote repository."
   (interactive)
   (poetry-call 'publish))
 
-(defun poetry-init (path)
-  "Creates a basic pyproject.toml file at PATH."
-  (interactive "DProject path: ")
-  (poetry-call 'init nil (list path)))
+;; ;;;###autoload
+;; (defun poetry-init (path)
+;;   "Creates a basic pyproject.toml file at PATH."
+;;   (interactive "DProject path: ")
+;;   (let ((default-directory path))
+;;     (poetry-call 'init)))
 
+;;;###autoload
 (defun poetry-new (path)
   "Creates a new Python project at PATH"
   (interactive "DProject path: ")
-  (poetry-call 'new nil (list path)))
+  (let ((default-directory path))
+    (poetry-call 'new nil (list path))))
 
+;;;###autoload
 (defun poetry-run (command)
   "Runs a command in the appropriate environment."
   (interactive "sCommand: ")
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
+;;;###autoload
 (defun poetry-shell ()
   "Spawns a shell within the virtual environment."
   (interactive)
@@ -195,11 +221,13 @@
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
 
+;;;###autoload
 (defun poetry-clear ()
   "Clears poetry's cache."
   (interactive)
   (poetry-call 'cache:clear))
 
+;;;###autoload
 (defun poetry-self-update ()
   "Updates poetry to the latest version."
   (interactive)
@@ -208,50 +236,84 @@
 ;; Helpers
 (defun poetry-call (command &optional output args)
   "Call poetry COMMAND with the given ARGS"
-  (let* ((command (if (string= command "run")
-                      (concatenate 'list (list "poetry" (symbol-name command))
-                                   args)
-                    (concatenate 'list (list "poetry" "-n" "--no-ansi"
-                                                      (symbol-name command))
-                                          args)))
-        (proc (make-process :name "poetry"
-                            :buffer " *poetry*"
-                            :command command
-                            :sentinel 'poetry-call-sentinel)))
-    (process-put proc 'output output)))
+  (let* ((prog "poetry")
+         (args (if (or (string= command "run")
+                       (string= command "init"))
+                   (concatenate 'list (list (symbol-name command))
+                                args)
+                 (concatenate 'list (list "-n" "--no-ansi"
+                                          (symbol-name command))
+                              args)))
+         (poetry-buffer "*poetry*")
+         error-code)
+    (let ((poetry-buf (get-buffer-create poetry-buffer)))
+      (with-current-buffer poetry-buf
+        (delete-region (point-min) (point-max)))
+      (setq error-code (apply 'call-process
+                              (concatenate 'list (list prog nil
+                                                       (list poetry-buf t)
+                                                        t)
+                                           args))))
+    (when (or output (not (= error-code 0)))
+      (poetry-display-buffer))))
 
-(defun poetry-call-sentinel (process string)
-  "Poetry call sentinel."
-  (let ((output (process-get process 'output)))
-    (if (not (string-match "^finished" string))
-        (progn
-          (message "Poetry process exited abnormally")
-          (poetry-display-buffer))
-      (if output
-          (poetry-display-buffer)))))
+;; (defun poetry-call-async (command &optional output args)
+;;   "Call poetry COMMAND with the given ARGS"
+;;   (let* ((command (if (or (string= command "run")
+;;                           (string= command "init"))
+;;                       (concatenate 'list (list "poetry" (symbol-name command))
+;;                                    args)
+;;                     (concatenate 'list (list "poetry" "-n" "--no-ansi"
+;;                                                       (symbol-name command))
+;;                                           args)))
+;;         (proc (make-process :name "poetry"
+;;                             :buffer " *poetry*"
+;;                             :command command
+;;                             :sentinel 'poetry-call-sentinel)))
+;;     (process-put proc 'output output)))
+
+;; (defun poetry-call-sentinel (process string)
+;;   "Poetry call sentinel."
+;;   (let ((output (process-get process 'output)))
+;;     (if (not (string-match "^finished" string))
+;;         (progn
+;;           (poetry-display-buffer))
+;;       (if output
+;;           (poetry-display-buffer)))))
 
 (defun poetry-display-buffer ()
-  (with-current-buffer " *poetry*"
+  (with-current-buffer "*poetry*"
     (let ((buffer-read-only nil))
       ;; (xterm-color-colorize-buffer)
       ;; (goto-char (point-min))
       ;; (while (search-forward "" (point-max) t)
       ;;   (replace-match "\n"))
-      (display-buffer " *poetry*"))))
+      (display-buffer "*poetry*"))))
 
-(defun poetry-get-dependencies (&optional dev)
+(defun poetry-get-dependencies (&optional dev opt)
   "Return the list of project dependencies.
 
-if DEV is non-nil, return the dev dependencies."
-  (interactive)
-  (let* ((pyproject-file (poetry-find-pyproject-file))
-         (pyproject (toml:read-from-file pyproject-file))
-         (category (if dev "dev-dependencies" "dependencies"))
-         (dependencies (cdr (assoc category
-                                   (assoc "poetry"
-                                          (assoc "tool" pyproject))))))
-    (map 'list (lambda (elem) (format "%s (%s)" (car elem) (cdr elem)))
-         dependencies)))
+If DEV is non-nil, install a developement dep.
+If OPT is non-nil, set an optional dep."
+  (with-current-file (poetry-find-pyproject-file)
+    (goto-char (point-min))
+    (if dev
+        (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
+      (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
+    (let ((beg (point))
+          (end (progn (re-search-forward "^\\[")
+                      (point)))
+          (regex (if (not opt)
+                     "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
+                     "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
+          deps)
+      (goto-char beg)
+      (while (re-search-forward regex end t)
+        (push (format "%s (%s)"
+                      (substring-no-properties (match-string 1))
+                      (substring-no-properties (match-string 2)))
+              deps))
+      (reverse deps))))
 
 (defun poetry-find-project-root ()
   "Return the poetry project root if any."
@@ -263,31 +325,32 @@ if DEV is non-nil, return the dev dependencies."
     (when root
       (concat (file-name-as-directory root) "pyproject.toml"))))
 
-;; toml fixes
-;; support hyphens (-) in group/var names
-(defun toml:read-keygroup ()
-  (toml:seek-readable-point)
-  (let (keygroup)
-    (while (and (not (toml:end-of-buffer-p))
-                (char-equal (toml:get-char-at-point) ?\[))
-      (if (toml:search-forward "\\[\\([a-zA-Z][a-zA-Z0-9_\\.-]*\\)\\]")
-          (let ((keygroup-string (match-string-no-properties 1)))
-            (when (string-match "\\(_\\|\\.\\)\\'" keygroup-string)
-              (signal 'toml-keygroup-error (list (point))))
-            (setq keygroup (split-string (match-string-no-properties 1) "\\.")))
-        (signal 'toml-keygroup-error (list (point))))
-      (toml:seek-readable-point))
-    keygroup))
+(defmacro with-current-file (file &rest body)
+  "Execute the forms in BODY while temporary visiting FILE."
+  (let* ((file (eval file))
+         (keep (find-buffer-visiting file))
+         (buffer (find-file-noselect file)))
+    `(save-current-buffer
+       (set-buffer ,buffer)
+       (prog1
+           (progn
+           ,@body)
+         (when ,(not keep)
+           (kill-buffer ,buffer))))))
 
-(defun toml:read-key ()
-  (toml:seek-readable-point)
-  (if (toml:end-of-buffer-p) nil
-    (if (toml:search-forward "\\([a-zA-Z][a-zA-Z0-9_-]*\\) *= *")
-        (let ((key (match-string-no-properties 1)))
-          (when (string-match "_\\'" key)
-            (signal 'toml-key-error (list (point))))
-          key)
-      (signal 'toml-key-error (list (point))))))
+(defun poetry-get-project-name ()
+  "Return the current project name."
+  (with-current-file (poetry-find-pyproject-file)
+    (goto-char (point-min))
+    (re-search-forward "^\\[tool\\.poetry\\]$")
+    (re-search-forward "^name = \"\\(.*\\)\"$")
+    (substring-no-properties (match-string 1))))
+
+
+(defun poetry-message (mess)
+  "Display a message."
+  (message "[%s] %s" (poetry-get-project-name) mess))
+
 
 (provide 'poetry)
 ;;; poetry.el ends here
