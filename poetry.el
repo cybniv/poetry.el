@@ -24,6 +24,7 @@
 
 (require 'cl)
 (require 'transient)
+(require 'xterm-color)
 
 (defconst poetry-version "0.1.0"
   "Poetry.el version")
@@ -45,10 +46,8 @@
     ;; ("I" "Init" poetry-init)
     ("n" "New" poetry-new)]
    [:if poetry-find-project-root
-        :description "Project"
-        ("c" "Check" poetry-check)]
-   [:if poetry-find-project-root
-        :description "Packages"
+    :description "Project"
+        ("c" "Check" poetry-check)
         ("b" "Build" poetry-build)
         ("p" "Publish" poetry-publish)]]
   [[:if poetry-find-project-root
@@ -215,11 +214,25 @@ if DEV is not nil, remove a development dependency."
   (interactive)
   (poetry-call 'update))
 
+(defun poetry-show-get-packages ()
+  "Return the list of package description for show."
+  (poetry-call 'show)
+  (with-current-buffer "*poetry*"
+    (goto-char (point-min))
+    (let (packs)
+      (while (re-search-forward "^\\(.+\\)$" nil t)
+        (push (match-string 1) packs))
+      packs)))
+
+
 ;;;###autoload
-(defun poetry-show ()
+(defun poetry-show (package)
   "Shows information about packages."
-  (interactive)
-  (poetry-call 'show))
+  (interactive
+   (list (completing-read "Package: "
+                          (poetry-show-get-packages))))
+  (string-match "^\\([^[:space:]]*\\).*$" package)
+  (poetry-call 'show t (list (match-string 1 package))))
 
 ;;;###autoload
 (defun poetry-build ()
@@ -228,10 +241,15 @@ if DEV is not nil, remove a development dependency."
   (poetry-call 'build))
 
 ;;;###autoload
-(defun poetry-publish ()
+(defun poetry-publish (repo username password)
   "Publishes a package to a remote repository."
-  (interactive)
-  (poetry-call 'publish))
+  (interactive (list
+                (completing-read "Repository: "
+                                 '("pypi"))
+                (read-from-minibuffer "Username: ")
+                (read-passwd "Password: ")))
+  (poetry-call 'publish
+               (list "-r" repo "-u" username "-p" password)))
 
 ;; ;;;###autoload
 ;; (defun poetry-init (path)
@@ -251,6 +269,7 @@ if DEV is not nil, remove a development dependency."
 ;;;###autoload
 (defun poetry-run (command)
   "Runs a command in the appropriate environment."
+  ;; TODO: add completion with scripts from pyptoject.toml
   (interactive "sCommand: ")
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
@@ -282,7 +301,7 @@ if DEV is not nil, remove a development dependency."
                        (string= command "init"))
                    (concatenate 'list (list (symbol-name command))
                                 args)
-                 (concatenate 'list (list "-n" "--no-ansi"
+                 (concatenate 'list (list "-n" "--ansi"
                                           (symbol-name command))
                               args)))
          (poetry-buffer "*poetry*")
@@ -294,7 +313,16 @@ if DEV is not nil, remove a development dependency."
                               (concatenate 'list (list prog nil
                                                        (list poetry-buf t)
                                                        t)
-                                           args))))
+                                           args)))
+      (with-current-buffer poetry-buf
+        (xterm-color-colorize-buffer)
+        (goto-char (point-min))
+        (while (re-search-forward "" nil t)
+          (replace-match "\n" nil nil))
+        (goto-char (point-min))
+        (while (re-search-forward "" nil t)
+          (replace-match "" nil nil))))
+
     (when (or output (not (= error-code 0)))
       (poetry-display-buffer))))
 
