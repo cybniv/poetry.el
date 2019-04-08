@@ -176,12 +176,12 @@
 (defun poetry-init (path)
   "Creates a basic pyproject.toml file at PATH."
   (interactive "DProject path: ")
-  (poetry-call 'init nil path))
+  (poetry-call 'init nil (list path)))
 
 (defun poetry-new (path)
   "Creates a new Python project at PATH"
   (interactive "DProject path: ")
-  (poetry-call 'new nil path))
+  (poetry-call 'new nil (list path)))
 
 (defun poetry-run (command)
   "Runs a command in the appropriate environment."
