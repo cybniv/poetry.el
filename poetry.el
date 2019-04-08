@@ -34,33 +34,32 @@
 (define-transient-command poetry ()
   "Poetry menu."
   [:if poetry-find-project-root
-   :description "Dependencies"
-    ("a" "Add" poetry-add)
-    ("r" "Remove" poetry-remove)
-    ("d" "Remove (dev)" poetry-remove-dev)
-    ("i" "Install" poetry-install)
-    ("l" "Lock" poetry-lock)
-    ("u" "Update" poetry-update)
-    ("s" "Show" poetry-show)]
+       :description "Dependencies"
+       ("a" "Add" poetry-add)
+       ("r" "Remove" poetry-remove)
+       ("i" "Install" poetry-install)
+       ("l" "Lock" poetry-lock)
+       ("u" "Update" poetry-update)
+       ("s" "Show" poetry-show)]
   [["New project"
-   ;; ("I" "Init" poetry-init)
+    ;; ("I" "Init" poetry-init)
     ("n" "New" poetry-new)]
    [:if poetry-find-project-root
-    :description "Project"
-    ("c" "Check" poetry-check)]
-  [:if poetry-find-project-root
-   :description "Packages"
-   ("b" "Build" poetry-build)
-   ("p" "Publish" poetry-publish)]]
+        :description "Project"
+        ("c" "Check" poetry-check)]
+   [:if poetry-find-project-root
+        :description "Packages"
+        ("b" "Build" poetry-build)
+        ("p" "Publish" poetry-publish)]]
   [[:if poetry-find-project-root
-   :description "Shell"
-   ("R" "Run a command" poetry-run)
-   ("S" "Start a shell" poetry-shell)]
-  ;; [:if poetry-find-project-root
-  ;;  :description "Cache"
-  ;;  ("C" "Clear" poetry-clear)]
-  ["Poetry"
-   ("U" "Update" poetry-self-update)]])
+        :description "Shell"
+        ("R" "Run a command" poetry-run)
+        ("S" "Start a shell" poetry-shell)]
+   ;; [:if poetry-find-project-root
+   ;;  :description "Cache"
+   ;;  ("C" "Clear" poetry-clear)]
+   ["Poetry"
+    ("U" "Update" poetry-self-update)]])
 
 ;; Poetry add
 (define-transient-command poetry-add ()
@@ -132,7 +131,49 @@
 
 ;; Poetry remove
 ;;;###autoload
-(defun poetry-remove (package)
+(defun poetry-remove (package type)
+  "Remove PACKAGE from the project dependencies.
+
+if DEV is not nil, remove a development dependency."
+  (interactive (let* ((packages (concatenate 'list
+                                 (map 'list
+                                      (lambda (dep)
+                                        (format "[dep]  %s" dep))
+                                      (poetry-get-dependencies))
+                                 (map 'list
+                                      (lambda (dep)
+                                        (format "[dev]  %s" dep))
+                                      (poetry-get-dependencies t))
+                                 (map 'list
+                                      (lambda (dep)
+                                        (format "[opt]  %s" dep))
+                                      (poetry-get-dependencies nil t))))
+                      (package (when packages
+                                 (completing-read "Package: "
+                                                  packages
+                                                  nil t))))
+                 (if (not package)
+                     (list nil nil)
+                   (string-match "^\\[\\(.*\\)\\]  \\([^[:space:]]*\\)[[:space:]]*(\\(.*\\))$" package)
+                   (list (match-string 2 package)
+                         (match-string 1 package)))))
+  (if (not package)
+      (poetry-message "No packages specified in pyproject.toml")
+    (pcase type
+      ("dep"
+       (poetry-message (format "Removing package %s"
+                               package))
+       (poetry-remove-dep package))
+      ("opt"
+       (poetry-message (format "Removing optional package %s"
+                               package))
+       (poetry-remove-dep package))
+      ("dev"
+       (poetry-message (format "Removing development package %s"
+                               package))
+       (poetry-remove-dev-dep package)))))
+
+(defun poetry-remove-dep (package)
   "Removes PACKAGE from the project dependencies."
   (interactive (list (car (split-string
                            (completing-read "Package: "
@@ -141,8 +182,7 @@
                            "[[:space:]]+"))))
   (poetry-call 'remove nil (list package)))
 
-;;;###autoload
-(defun poetry-remove-dev (package)
+(defun poetry-remove-dev-dep (package)
   "Removes PACKAGE from the project development dependencies."
   (interactive (list (car (split-string
                            (completing-read "Package: "
@@ -205,6 +245,7 @@
   "Creates a new Python project at PATH"
   (interactive "DProject path: ")
   (let ((default-directory path))
+    (poetry-message (format "Creating new project: %s" path))
     (poetry-call 'new nil (list path))))
 
 ;;;###autoload
@@ -252,7 +293,7 @@
       (setq error-code (apply 'call-process
                               (concatenate 'list (list prog nil
                                                        (list poetry-buf t)
-                                                        t)
+                                                       t)
                                            args))))
     (when (or output (not (= error-code 0)))
       (poetry-display-buffer))))
@@ -296,24 +337,24 @@
 If DEV is non-nil, install a developement dep.
 If OPT is non-nil, set an optional dep."
   (with-current-file (poetry-find-pyproject-file)
-    (goto-char (point-min))
-    (if dev
-        (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
-      (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
-    (let ((beg (point))
-          (end (progn (re-search-forward "^\\[")
-                      (point)))
-          (regex (if (not opt)
-                     "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
-                     "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
-          deps)
-      (goto-char beg)
-      (while (re-search-forward regex end t)
-        (push (format "%s (%s)"
-                      (substring-no-properties (match-string 1))
-                      (substring-no-properties (match-string 2)))
-              deps))
-      (reverse deps))))
+                     (goto-char (point-min))
+                     (if dev
+                         (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
+                       (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
+                     (let ((beg (point))
+                           (end (progn (re-search-forward "^\\[")
+                                       (point)))
+                           (regex (if (not opt)
+                                      "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
+                                    "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
+                           deps)
+                       (goto-char beg)
+                       (while (re-search-forward regex end t)
+                         (push (format "%s (%s)"
+                                       (substring-no-properties (match-string 1))
+                                       (substring-no-properties (match-string 2)))
+                               deps))
+                       (reverse deps))))
 
 (defun poetry-find-project-root ()
   "Return the poetry project root if any."
@@ -327,29 +368,33 @@ If OPT is non-nil, set an optional dep."
 
 (defmacro with-current-file (file &rest body)
   "Execute the forms in BODY while temporary visiting FILE."
-  (let* ((file (eval file))
-         (keep (find-buffer-visiting file))
-         (buffer (find-file-noselect file)))
-    `(save-current-buffer
-       (set-buffer ,buffer)
+  `(save-current-buffer
+     (let* ((file ,file)
+            (keep (find-buffer-visiting file))
+            (buffer (find-file-noselect file)))
+       (set-buffer buffer)
        (prog1
            (progn
-           ,@body)
-         (when ,(not keep)
-           (kill-buffer ,buffer))))))
+             ,@body)
+         (when (not keep)
+           (kill-buffer buffer))))))
 
 (defun poetry-get-project-name ()
   "Return the current project name."
-  (with-current-file (poetry-find-pyproject-file)
-    (goto-char (point-min))
-    (re-search-forward "^\\[tool\\.poetry\\]$")
-    (re-search-forward "^name = \"\\(.*\\)\"$")
-    (substring-no-properties (match-string 1))))
-
+  (let ((file (poetry-find-pyproject-file)))
+    (when file
+      (with-current-file file
+         (goto-char (point-min))
+         (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
+           (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
+             (substring-no-properties (match-string 1))))))))
 
 (defun poetry-message (mess)
   "Display a message."
-  (message "[%s] %s" (poetry-get-project-name) mess))
+  (let ((name (poetry-get-project-name)))
+    (if name
+        (message "[%s] %s" name mess)
+    (message "[Poetry] %s" mess))))
 
 
 (provide 'poetry)
