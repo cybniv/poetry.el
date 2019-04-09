@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/galaunay/poetry.el.svg?branch=master)](https://travis-ci.org/galaunay/poetry.el)
+[![Coverage Status](https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master)](https://coveralls.io/github/galaunay/poetry.el?branch=master)
 ## Poetry.el
 
  [Poetry](https://poetry.eustace.io/) in Emacs.
