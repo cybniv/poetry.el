@@ -23,7 +23,7 @@ The interface should then be pretty much self-explanatory:
 
   1. Install dependencies
 
-Poetry.el needs `transient` and `toml` to be installed.
+Poetry.el needs `transient` and `xterm-color` to be installed.
 They are both available on MELPA.
 
   2. Clone the `poetry.el` repository:
