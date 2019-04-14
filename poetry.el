@@ -175,20 +175,10 @@ if DEV is not nil, remove a development dependency."
 
 (defun poetry-remove-dep (package)
   "Removes PACKAGE from the project dependencies."
-  (interactive (list (car (split-string
-                           (completing-read "Package: "
-                                            (poetry-get-dependencies)
-                                            nil 'confirm)
-                           "[[:space:]]+"))))
   (poetry-call 'remove nil (list package)))
 
 (defun poetry-remove-dev-dep (package)
   "Removes PACKAGE from the project development dependencies."
-  (interactive (list (car (split-string
-                           (completing-read "Package: "
-                                            (poetry-get-dependencies t)
-                                            nil 'confirm)
-                           "[[:space:]]+"))))
   (poetry-call 'remove nil (list package "-D")))
 
 ;;;###autoload
@@ -284,11 +274,11 @@ if DEV is not nil, remove a development dependency."
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
 
-;;;###autoload
-(defun poetry-clear ()
-  "Clears poetry's cache."
-  (interactive)
-  (poetry-call 'cache:clear))
+;; ;;;###autoload
+;; (defun poetry-clear ()
+;;   "Clears poetry's cache."
+;;   (interactive)
+;;   (poetry-call 'cache:clear nil '("--all")))
 
 ;;;###autoload
 (defun poetry-self-update ()
