@@ -6,7 +6,14 @@
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (should (string-match
-             "six            .* Python 2 and 3 compatibility utilitiespytest         .* pytest: simple powerful testing with Pythonpy             .*  library with cross-python path, ini-parsing, io, code...pluggy         .*  plugin and hook calling mechanisms for pythonmore-itertools .*  More routines for operating on iterables, beyond iter...attrs          .* Classes Without Boilerplateatomicwrites   .*  Atomic file writes."
+             (concat
+              "six[[:space:]]+[0-9.]+ .*"
+              "pytest[[:space:]]+[0-9.]+ .*"
+              "py[[:space:]]+[0-9.]+ .*"
+              "pluggy[[:space:]]+[0-9.]+ .*"
+              "more-itertools[[:space:]]+[0-9.]+ .*"
+              "attrs[[:space:]]+[0-9.]+ .*"
+              "atomicwrites[[:space:]]+[0-9.]+ .*")
              (substring-no-properties
               (apply 'concat (poetry-show-get-packages)))))))
 
