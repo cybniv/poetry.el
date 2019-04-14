@@ -2,6 +2,11 @@
 
 (let ((poetry-dir (f-parent (f-dirname (f-this-file)))))
   (add-to-list 'load-path poetry-dir))
+
+;; coverage
+(when (require 'undercover nil t)
+  (undercover "*.el"))
+
 (require 'poetry)
 
 (defun poetry-test-create-empty-folder ()

@@ -8,4 +8,5 @@
 (depends-on "xterm-color" "1.8")
 
 (development
- (depends-on "ert-runner"))
+ (depends-on "ert-runner")
+ (depends-on "undercover"))
