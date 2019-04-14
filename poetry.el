@@ -34,6 +34,7 @@
 ;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
+  [:description (lambda () (format "Project: %s" (poetry-get-project-name)))
   [:if poetry-find-project-root
        :description "Dependencies"
        ("a" "Add" poetry-add)
@@ -41,7 +42,7 @@
        ("i" "Install" poetry-install)
        ("l" "Lock" poetry-lock)
        ("u" "Update" poetry-update)
-       ("s" "Show" poetry-show)]
+       ("s" "Show" poetry-show)]]
   [["New project"
     ;; ("I" "Init" poetry-init)
     ("n" "New" poetry-new)]
