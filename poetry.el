@@ -264,6 +264,8 @@ if DEV is not nil, remove a development dependency."
   (interactive "DProject path: ")
   (let ((default-directory path))
     (poetry-message (format "Creating new project: %s" path))
+    (unless (file-directory-p path)
+      (make-directory path))
     (poetry-call 'new nil (list path))))
 
 ;;;###autoload
