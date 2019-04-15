@@ -28,4 +28,16 @@
               (re-search-forward "^name[[:space:]]*: six$" nil t)
               (re-search-forward "description[[:space:]]*: Python 2 and 3 compatibility utilities" nil t)))))
 
+(ert-deftest poetry-show-interactive-should-offer-packages ()
+  (let* ((ppath (poetry-test-create-project-folder))
+         (default-directory ppath))
+    (poetry-add-dep "atomicwrites")
+    (poetry-add-dep "attrs")
+    (cl-letf (((symbol-function 'completing-read) (lambda (&rest ignore) "attrs      4.4  Classes without ...")))
+      (call-interactively 'poetry-show))
+    (should (with-current-buffer "*poetry*"
+              (goto-char (point-min))
+              (re-search-forward "^name[[:space:]]*: attrs$" nil t)
+              (re-search-forward "description[[:space:]]*: Classes Without Boilerplate" nil t)))))
+
 ;;; poetry-show-test.el ends here
