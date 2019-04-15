@@ -20,15 +20,20 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+
+;;; Commentary:
+
+;; This package offers an interface to poetry (https://poetry.eustace.io/),
+;; a Python dependency management and packaging command line tool.
+
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'transient)
 (require 'xterm-color)
 
 (defconst poetry-version "0.1.0"
-  "Poetry.el version")
-
+  "Poetry.el version.")
 
 ;; Transient interface
 ;;;###autoload
@@ -101,10 +106,12 @@
   :argument "--platform=")
 
 (defun poetry-call-add (package args)
-  "Add PACKAGE as a new dependency to the project."
+  "Add PACKAGE as a new dependency to the project.
+
+ARGS are additionnal arguments passed to ``poetry add''."
   (let ((args (concatenate 'list args
                            (transient-args 'poetry-add))))
-    (poetry-call 'add nil (concatenate 'list
+    (poetry-call #'add nil (concatenate 'list
                                        (list package)
                                        args))))
 
@@ -134,7 +141,7 @@
 (defun poetry-remove (package type)
   "Remove PACKAGE from the project dependencies.
 
-if DEV is not nil, remove a development dependency."
+TYPE is the type of dependency (dep, dev or opt)."
   (interactive (let* ((packages (concatenate 'list
                                  (map 'list
                                       (lambda (dep)
@@ -174,22 +181,22 @@ if DEV is not nil, remove a development dependency."
        (poetry-remove-dev-dep package)))))
 
 (defun poetry-remove-dep (package)
-  "Removes PACKAGE from the project dependencies."
+  "Remove PACKAGE from the project dependencies."
   (poetry-call 'remove nil (list package)))
 
 (defun poetry-remove-dev-dep (package)
-  "Removes PACKAGE from the project development dependencies."
+  "Remove PACKAGE from the project development dependencies."
   (poetry-call 'remove nil (list package "-D")))
 
 ;;;###autoload
 (defun poetry-check ()
-  "Checks the validity of the pyproject.toml file."
+  "Check the validity of the pyproject.toml file."
   (interactive)
   (poetry-call 'check t))
 
 ;;;###autoload
 (defun poetry-install ()
-  "Installs the project dependencies."
+  "Install the project dependencies."
   (interactive)
   (poetry-call 'install))
 
@@ -218,7 +225,7 @@ if DEV is not nil, remove a development dependency."
 
 ;;;###autoload
 (defun poetry-show (package)
-  "Shows information about packages."
+  "Show information about package PACKAGE."
   (interactive
    (list (completing-read "Package: "
                           (poetry-show-get-packages))))
@@ -227,13 +234,16 @@ if DEV is not nil, remove a development dependency."
 
 ;;;###autoload
 (defun poetry-build ()
-  "Builds a package, as a tarball and a wheel by default."
+  "Build a package, as a tarball and a wheel by default."
   (interactive)
   (poetry-call 'build))
 
 ;;;###autoload
 (defun poetry-publish (repo username password)
-  "Publishes a package to a remote repository."
+  "Publish the package to a remote repository.
+
+REPO is the repository and USERNAME and PASSWORD the
+credential to use."
   (interactive (list
                 (completing-read "Repository: "
                                  '("pypi"))
@@ -251,7 +261,7 @@ if DEV is not nil, remove a development dependency."
 
 ;;;###autoload
 (defun poetry-new (path)
-  "Creates a new Python project at PATH"
+  "Create a new Python project at PATH."
   (interactive "DProject path: ")
   (let ((default-directory path))
     (poetry-message (format "Creating new project: %s" path))
@@ -261,14 +271,14 @@ if DEV is not nil, remove a development dependency."
 
 ;;;###autoload
 (defun poetry-run (command)
-  "Runs a command in the appropriate environment."
+  "Run COMMAND in the appropriate environment."
   ;; TODO: add completion with scripts from pyptoject.toml
   (interactive "sCommand: ")
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
 ;;;###autoload
 (defun poetry-shell ()
-  "Spawns a shell within the virtual environment."
+  "Spawn a shell within the virtual environment."
   (interactive)
   (shell "*poetry-shell*")
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
@@ -282,13 +292,15 @@ if DEV is not nil, remove a development dependency."
 
 ;;;###autoload
 (defun poetry-self-update ()
-  "Updates poetry to the latest version."
+  "Update poetry to the latest version."
   (interactive)
   (poetry-call 'self:update))
 
 ;; Helpers
 (defun poetry-call (command &optional output args)
-  "Call poetry COMMAND with the given ARGS"
+  "Call poetry COMMAND with the given ARGS.
+
+if OUTPUT is non-nil, display the poetry buffer when fninshed."
   (let* ((prog "poetry")
          (args (if (or (string= command "run")
                        (string= command "init"))
@@ -302,7 +314,7 @@ if DEV is not nil, remove a development dependency."
     (let ((poetry-buf (get-buffer-create poetry-buffer)))
       (with-current-buffer poetry-buf
         (delete-region (point-min) (point-max)))
-      (setq error-code (apply 'call-process
+      (setq error-code (apply #'call-process
                               (concatenate 'list (list prog nil
                                                        (list poetry-buf t)
                                                        t)
@@ -344,6 +356,7 @@ if DEV is not nil, remove a development dependency."
 ;;           (poetry-display-buffer)))))
 
 (defun poetry-display-buffer ()
+  "Display the poetry buffer."
   (with-current-buffer "*poetry*"
     (let ((buffer-read-only nil))
       ;; (xterm-color-colorize-buffer)
@@ -411,7 +424,7 @@ If OPT is non-nil, set an optional dep."
              (substring-no-properties (match-string 1))))))))
 
 (defun poetry-message (mess)
-  "Display a message."
+  "Display the message MESS."
   (let ((name (poetry-get-project-name)))
     (if name
         (message "[%s] %s" name mess)
