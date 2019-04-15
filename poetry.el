@@ -109,9 +109,9 @@
   "Add PACKAGE as a new dependency to the project.
 
 ARGS are additionnal arguments passed to ``poetry add''."
-  (let ((args (concatenate 'list args
+  (let ((args (cl-concatenate 'list args
                            (transient-args 'poetry-add))))
-    (poetry-call #'add nil (concatenate 'list
+    (poetry-call #'add nil (cl-concatenate 'list
                                        (list package)
                                        args))))
 
@@ -142,16 +142,16 @@ ARGS are additionnal arguments passed to ``poetry add''."
   "Remove PACKAGE from the project dependencies.
 
 TYPE is the type of dependency (dep, dev or opt)."
-  (interactive (let* ((packages (concatenate 'list
-                                 (map 'list
+  (interactive (let* ((packages (cl-concatenate 'list
+                                 (cl-map 'list
                                       (lambda (dep)
                                         (format "[dep]  %s" dep))
                                       (poetry-get-dependencies))
-                                 (map 'list
+                                 (cl-map 'list
                                       (lambda (dep)
                                         (format "[dev]  %s" dep))
                                       (poetry-get-dependencies t))
-                                 (map 'list
+                                 (cl-map 'list
                                       (lambda (dep)
                                         (format "[opt]  %s" dep))
                                       (poetry-get-dependencies nil t))))
@@ -304,9 +304,9 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
   (let* ((prog "poetry")
          (args (if (or (string= command "run")
                        (string= command "init"))
-                   (concatenate 'list (list (symbol-name command))
+                   (cl-concatenate 'list (list (symbol-name command))
                                 args)
-                 (concatenate 'list (list "-n" "--ansi"
+                 (cl-concatenate 'list (list "-n" "--ansi"
                                           (symbol-name command))
                               args)))
          (poetry-buffer "*poetry*")
@@ -315,7 +315,7 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
       (with-current-buffer poetry-buf
         (delete-region (point-min) (point-max)))
       (setq error-code (apply #'call-process
-                              (concatenate 'list (list prog nil
+                              (cl-concatenate 'list (list prog nil
                                                        (list poetry-buf t)
                                                        t)
                                            args)))
@@ -335,9 +335,9 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
 ;;   "Call poetry COMMAND with the given ARGS"
 ;;   (let* ((command (if (or (string= command "run")
 ;;                           (string= command "init"))
-;;                       (concatenate 'list (list "poetry" (symbol-name command))
+;;                       (cl-concatenate 'list (list "poetry" (symbol-name command))
 ;;                                    args)
-;;                     (concatenate 'list (list "poetry" "-n" "--no-ansi"
+;;                     (cl-concatenate 'list (list "poetry" "-n" "--no-ansi"
 ;;                                                       (symbol-name command))
 ;;                                           args)))
 ;;         (proc (make-process :name "poetry"
