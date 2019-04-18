@@ -301,7 +301,8 @@ credential to use."
   "Call poetry COMMAND with the given ARGS.
 
 if OUTPUT is non-nil, display the poetry buffer when fninshed."
-  (let* ((prog "poetry")
+  (let* ((prog (or (executable-find "poetry")
+                   (poetry-error "Could not find 'poetry' executable.")))
          (args (if (or (string= command "run")
                        (string= command "init"))
                    (cl-concatenate 'list (list (symbol-name command))
@@ -429,6 +430,13 @@ If OPT is non-nil, set an optional dep."
     (if name
         (message "[%s] %s" name mess)
     (message "[Poetry] %s" mess))))
+
+(defun poetry-error (mess)
+  "Display the error MESS."
+  (let ((name (poetry-get-project-name)))
+    (if name
+        (error "[%s] %s" name mess)
+    (error "[Poetry] %s" mess))))
 
 
 (provide 'poetry)
