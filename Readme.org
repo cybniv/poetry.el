@@ -1,0 +1,43 @@
+
+[[https://travis-ci.org/galaunay/poetry.el][https://travis-ci.org/galaunay/poetry.el.svg?branch=master]]
+[[https://coveralls.io/github/galaunay/poetry.el?branch=master][https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master]]
+[[https://github.com/galaunay/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
+
+** Poetry.el
+
+ [[https://poetry.eustace.io/][Poetry]] in Emacs.
+
+ This is a work in progress, advices are welcome.
+
+
+** Usage
+
+Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
+The entry point is simply:
+#+BEGIN_SRC elisp
+M-x poetry
+#+END_SRC
+The interface should then be pretty much self-explanatory:
+
+[[doc/screenshot1.png]]
+
+
+** Installation
+
+   1. Install dependencies
+   
+      Poetry.el needs ~transient~ and ~xterm-color~ to be installed.
+      They are both available on MELPA. 
+      
+   2. Clone the ~poetry.el~ repository:
+   
+      #+BEGIN_SRC bash
+      $ git clone https://github.com/galaunay/poetry.el /path/to/poetry.el/directory
+      #+END_SRC
+      
+   3. Add the following lines to ~.emacs.el~ (or equivalent):
+   
+      #+BEGIN_SRC elisp
+      (add-to-list 'load-path "/path/to/poetry.el/directory")
+      (require 'poetry)
+      #+END_SRC
