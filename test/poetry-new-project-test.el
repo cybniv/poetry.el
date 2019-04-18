@@ -14,4 +14,18 @@
     (should (file-exists-p readme-path))
     (should (file-exists-p tests-path)))))
 
+(ert-deftest poetry-new-should-create-new-directories ()
+  (let ((ppath (concat (poetry-test-create-empty-folder)
+                       "/myproject")))
+    (poetry-new ppath)
+  (let ((pyproj-path (concat (file-name-as-directory ppath)
+                                  "pyproject.toml"))
+        (readme-path (concat (file-name-as-directory ppath)
+                                  "README.rst"))
+        (tests-path (concat (file-name-as-directory ppath)
+                                  "tests")))
+    (should (file-exists-p pyproj-path))
+    (should (file-exists-p readme-path))
+    (should (file-exists-p tests-path)))))
+
 ;;; poetry-new-project-test.el ends here
