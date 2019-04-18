@@ -6,6 +6,7 @@
 ;; URL: https://github.com/galaunay/poetry.el
 ;; Version: 0.1.0
 ;; Keywords: Python, Tools
+;; Package-Requires: ((transient "0.1.0") (cl "1.0") (xterm-color "1.8"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
@@ -32,6 +33,7 @@
 (require 'transient)
 (require 'xterm-color)
 
+;; Variables
 (defconst poetry-version "0.1.0"
   "Poetry.el version.")
 
@@ -60,9 +62,6 @@
         :description "Shell"
         ("R" "Run a command" poetry-run)
         ("S" "Start a shell" poetry-shell)]
-   ;; [:if poetry-find-project-root
-   ;;  :description "Cache"
-   ;;  ("C" "Clear" poetry-clear)]
    ["Poetry"
     ("U" "Update" poetry-self-update)]])
 
@@ -188,30 +187,35 @@ TYPE is the type of dependency (dep, dev or opt)."
   "Remove PACKAGE from the project development dependencies."
   (poetry-call 'remove nil (list package "-D")))
 
+;; Poetry check
 ;;;###autoload
 (defun poetry-check ()
   "Check the validity of the pyproject.toml file."
   (interactive)
   (poetry-call 'check t))
 
+;; Poetry install
 ;;;###autoload
 (defun poetry-install ()
   "Install the project dependencies."
   (interactive)
   (poetry-call 'install))
 
+;; Poetry lock
 ;;;###autoload
 (defun poetry-lock ()
   "Locks the project dependencies."
   (interactive)
   (poetry-call 'lock))
 
+;; Poetry update
 ;;;###autoload
 (defun poetry-update ()
   "Update dependencies as according to the pyproject.toml file."
   (interactive)
   (poetry-call 'update))
 
+;; Poetry show
 (defun poetry-show-get-packages ()
   "Return the list of package description for show."
   (poetry-call 'show)
@@ -222,7 +226,6 @@ TYPE is the type of dependency (dep, dev or opt)."
         (push (match-string 1) packs))
       packs)))
 
-
 ;;;###autoload
 (defun poetry-show (package)
   "Show information about package PACKAGE."
@@ -232,12 +235,14 @@ TYPE is the type of dependency (dep, dev or opt)."
   (string-match "^\\([^[:space:]]*\\).*$" package)
   (poetry-call 'show t (list (match-string 1 package))))
 
+;; Poetry build
 ;;;###autoload
 (defun poetry-build ()
   "Build a package, as a tarball and a wheel by default."
   (interactive)
   (poetry-call 'build))
 
+;; Poetry publish
 ;;;###autoload
 (defun poetry-publish (repo username password)
   "Publish the package to a remote repository.
@@ -252,13 +257,7 @@ credential to use."
   (poetry-call 'publish
                (list "-r" repo "-u" username "-p" password)))
 
-;; ;;;###autoload
-;; (defun poetry-init (path)
-;;   "Creates a basic pyproject.toml file at PATH."
-;;   (interactive "DProject path: ")
-;;   (let ((default-directory path))
-;;     (poetry-call 'init)))
-
+;; Poetry new
 ;;;###autoload
 (defun poetry-new (path)
   "Create a new Python project at PATH."
@@ -269,6 +268,7 @@ credential to use."
       (make-directory path))
     (poetry-call 'new nil (list path))))
 
+;; Poetry run
 ;;;###autoload
 (defun poetry-run (command)
   "Run COMMAND in the appropriate environment."
@@ -276,6 +276,7 @@ credential to use."
   (interactive "sCommand: ")
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
+;; Poetry shell
 ;;;###autoload
 (defun poetry-shell ()
   "Spawn a shell within the virtual environment."
@@ -284,12 +285,7 @@ credential to use."
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
 
-;; ;;;###autoload
-;; (defun poetry-clear ()
-;;   "Clears poetry's cache."
-;;   (interactive)
-;;   (poetry-call 'cache:clear nil '("--all")))
-
+;; Poetry update
 ;;;###autoload
 (defun poetry-self-update ()
   "Update poetry to the latest version."
@@ -302,7 +298,7 @@ credential to use."
 
 if OUTPUT is non-nil, display the poetry buffer when fninshed."
   (let* ((prog (or (executable-find "poetry")
-                   (poetry-error "Could not find 'poetry' executable.")))
+                   (poetry-error "Could not find 'poetry' executable")))
          (args (if (or (string= command "run")
                        (string= command "init"))
                    (cl-concatenate 'list (list (symbol-name command))
@@ -332,38 +328,10 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
     (when (or output (not (= error-code 0)))
       (poetry-display-buffer))))
 
-;; (defun poetry-call-async (command &optional output args)
-;;   "Call poetry COMMAND with the given ARGS"
-;;   (let* ((command (if (or (string= command "run")
-;;                           (string= command "init"))
-;;                       (cl-concatenate 'list (list "poetry" (symbol-name command))
-;;                                    args)
-;;                     (cl-concatenate 'list (list "poetry" "-n" "--no-ansi"
-;;                                                       (symbol-name command))
-;;                                           args)))
-;;         (proc (make-process :name "poetry"
-;;                             :buffer " *poetry*"
-;;                             :command command
-;;                             :sentinel 'poetry-call-sentinel)))
-;;     (process-put proc 'output output)))
-
-;; (defun poetry-call-sentinel (process string)
-;;   "Poetry call sentinel."
-;;   (let ((output (process-get process 'output)))
-;;     (if (not (string-match "^finished" string))
-;;         (progn
-;;           (poetry-display-buffer))
-;;       (if output
-;;           (poetry-display-buffer)))))
-
 (defun poetry-display-buffer ()
   "Display the poetry buffer."
   (with-current-buffer "*poetry*"
     (let ((buffer-read-only nil))
-      ;; (xterm-color-colorize-buffer)
-      ;; (goto-char (point-min))
-      ;; (while (search-forward "" (point-max) t)
-      ;;   (replace-match "\n"))
       (display-buffer "*poetry*"))))
 
 (defun poetry-get-dependencies (&optional dev opt)
