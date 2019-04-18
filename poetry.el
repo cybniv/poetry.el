@@ -261,7 +261,7 @@ credential to use."
 ;;;###autoload
 (defun poetry-new (path)
   "Create a new Python project at PATH."
-  (interactive "DProject path: ")
+  (interactive "GProject path: ")
   (let ((default-directory path))
     (poetry-message (format "Creating new project: %s" path))
     (unless (file-directory-p path)
