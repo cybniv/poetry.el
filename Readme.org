@@ -7,11 +7,12 @@
 
  [[https://poetry.eustace.io/][Poetry]] in Emacs.
 
- This is a work in progress, advices are welcome.
+ This is a work in progress, comments are welcome.
 
 
 ** Usage
 
+*** Manage Poetry project
 Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
 The entry point is simply:
 #+BEGIN_SRC elisp
@@ -21,22 +22,29 @@ The interface should then be pretty much self-explanatory:
 
 [[doc/screenshot1.png]]
 
+*** Use Poetry virtualenv
+Poetry.el provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
+You can activate this fature with
+#+BEGIN_SRC elisp
+M-x poetry-tracking-mode
+#+END_SRC
+
 
 ** Installation
 
    1. Install dependencies
-   
-      Poetry.el needs ~transient~ and ~xterm-color~ to be installed.
-      They are both available on MELPA. 
-      
+
+      Poetry.el needs ~transient~, ~xterm-color~ and ~pyvenv~ to be installed.
+      They are all available on MELPA.
+
    2. Clone the ~poetry.el~ repository:
-   
+
       #+BEGIN_SRC bash
       $ git clone https://github.com/galaunay/poetry.el /path/to/poetry.el/directory
       #+END_SRC
-      
+
    3. Add the following lines to ~.emacs.el~ (or equivalent):
-   
+
       #+BEGIN_SRC elisp
       (add-to-list 'load-path "/path/to/poetry.el/directory")
       (require 'poetry)

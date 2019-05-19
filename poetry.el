@@ -32,16 +32,34 @@
 (require 'cl-lib)
 (require 'transient)
 (require 'xterm-color)
+(require 'pyvenv)
 
 ;; Variables
 (defconst poetry-version "0.1.0"
   "Poetry.el version.")
 
+(defgroup poetry nil
+  "Poetry in Emacs."
+  :prefix "poetry-")
+
+(defcustom poetry-virtuelenv-path
+  (cond
+   ((string-match "ms-dos" (symbol-name system-type))
+    (expand-file-name "%APPDATA%/Local/pypoetry/Cache/virtualenvs"))
+   ((string-match "darwin" (symbol-name system-type))
+    (expand-file-name "~/Library/Caches/pypoetry/virtualenvs"))
+   (t
+    (expand-file-name "~/.cache/pypoetry/virtualenvs")))
+  "Path to poetry virtualenvs directory."
+  :group 'poetry
+  :type 'string)
+
+
 ;; Transient interface
 ;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
-  [:description (lambda () (format "Project: %s" (poetry-get-project-name)))
+  [:description (lambda () (format "Project: %s\n" (poetry-get-project-name)))
   [:if poetry-find-project-root
        :description "Dependencies"
        ("a" "Add" poetry-add)
@@ -50,6 +68,9 @@
        ("l" "Lock" poetry-lock)
        ("u" "Update" poetry-update)
        ("s" "Show" poetry-show)]]
+  [:if poetry-find-project-root
+       :description "Virtualenv"
+       ("v" "Toggle virtualenv" poetry-venv-toggle)]
   [["New project"
     ;; ("I" "Init" poetry-init)
     ("n" "New" poetry-new)]
@@ -110,7 +131,7 @@
 ARGS are additionnal arguments passed to ``poetry add''."
   (let ((args (cl-concatenate 'list args
                            (transient-args 'poetry-add))))
-    (poetry-call #'add nil (cl-concatenate 'list
+    (poetry-call 'add nil (cl-concatenate 'list
                                        (list package)
                                        args))))
 
@@ -266,7 +287,9 @@ credential to use."
     (poetry-message (format "Creating new project: %s" path))
     (unless (file-directory-p path)
       (make-directory path))
-    (poetry-call 'new nil (list path))))
+    (poetry-call 'new nil (list path))
+    ;; make sure the virtualenv is created
+    (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
 
 ;; Poetry run
 ;;;###autoload
@@ -281,6 +304,7 @@ credential to use."
 (defun poetry-shell ()
   "Spawn a shell within the virtual environment."
   (interactive)
+  (poetry-ensure-in-project)
   (shell "*poetry-shell*")
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
@@ -292,11 +316,88 @@ credential to use."
   (interactive)
   (poetry-call 'self:update))
 
+;; Virtualenv
+
+;;;###autoload
+(defun poetry-venv-workon ()
+  "Activate the virtualenv associated to the current poetry project."
+  (interactive)
+  (poetry-ensure-in-project)
+  (pyvenv-activate (poetry-get-virtualenv)))
+
+;;;###autoload
+(defun poetry-venv-deactivate ()
+  "De-activate the virtualenv associated to the current poetry project."
+  (interactive)
+  (let ((venv (poetry-get-virtualenv)))
+    (if (not pyvenv-virtual-env)
+        (poetry-error "No virtualenv activated.")
+      (if (not (equal (file-name-as-directory venv)
+                      (file-name-as-directory pyvenv-virtual-env)))
+          (poetry-error "Current poetry virtualenv not activated.")
+        (pyvenv-deactivate)))))
+
+;;;###autoload
+(defun poetry-venv-toggle ()
+  "Activate or deactivate the virtualenv associated to the current poetry project."
+  (interactive)
+  (let ((venv (poetry-get-virtualenv)))
+    (if (not pyvenv-virtual-env)
+        (poetry-venv-workon)
+      (if (equal (file-name-as-directory venv)
+                 (file-name-as-directory pyvenv-virtual-env))
+          (poetry-venv-deactivate)
+        (poetry-venv-workon)))))
+
+;; Virtualenv tracking
+
+;;;###autoload
+(define-minor-mode poetry-tracking-mode
+  "Global minor mode to track the current poetry virtualenv."
+  :global t
+  (if poetry-tracking-mode
+      (add-hook 'post-command-hook 'poetry-track-virtualenv)
+    (remove-hook 'post-command-hook 'poetry-track-virtualenv)))
+
+(defvar poetry-saved-venv nil
+  "Virtualenv activated before poetry.el changed it.
+
+Allow to re-enable the previous virtualenv when leaving the poetry project.")
+
+(defvar poetry-venv-list '()
+  "List of known poetry virtualenvs.")
+
+(defun poetry-track-virtualenv ()
+  "Automatically activate virtualenvs when visiting a poetry project."
+  (cond
+   ;; If in a poetry project, activate the associated virtualenv
+   ((poetry-find-project-root)
+    (let ((poetry-venv (poetry-get-virtualenv)))
+      (when (and poetry-venv
+                 (not (equal (file-name-as-directory poetry-venv)
+                             pyvenv-virtual-env)))
+        ;; Save previous virtualenv
+        (when (and pyvenv-virtual-env
+                   (not (member (file-name-as-directory pyvenv-virtual-env)
+                                poetry-venv-list)))
+          (setq poetry-saved-venv pyvenv-virtual-env))
+        (add-to-list 'poetry-venv-list (file-name-as-directory poetry-venv))
+        (pyvenv-activate poetry-venv))))
+   ;; If not in a poetry project, deactivate the poetry virtualenv
+   ((and pyvenv-virtual-env
+         (member (file-name-as-directory pyvenv-virtual-env) poetry-venv-list))
+    (if (not poetry-saved-venv)
+        (pyvenv-deactivate)
+      (pyvenv-activate poetry-saved-venv)
+      (setq poetry-saved-venv nil)))))
+
 ;; Helpers
 (defun poetry-call (command &optional output args)
   "Call poetry COMMAND with the given ARGS.
 
-if OUTPUT is non-nil, display the poetry buffer when fninshed."
+if OUTPUT is non-nil, display the poetry buffer when finished."
+  (when (not (member command '(new update)))
+    (poetry-ensure-in-project))
   (let* ((prog (or (executable-find "poetry")
                    (poetry-error "Could not find 'poetry' executable")))
          (args (if (or (string= command "run")
@@ -325,7 +426,10 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
         (while (re-search-forward "" nil t)
           (replace-match "" nil nil))))
 
-    (when (or output (not (= error-code 0)))
+    (when (not (= error-code 0))
+      (poetry-display-buffer)
+      (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information."))
+    (when output
       (poetry-display-buffer))))
 
 (defun poetry-display-buffer ()
@@ -359,16 +463,6 @@ If OPT is non-nil, set an optional dep."
                                deps))
                        (reverse deps))))
 
-(defun poetry-find-project-root ()
-  "Return the poetry project root if any."
-  (locate-dominating-file default-directory "pyproject.toml"))
-
-(defun poetry-find-pyproject-file ()
-  "Return the location of the 'pyproject.toml' file."
-  (let ((root (poetry-find-project-root)))
-    (when root
-      (concat (file-name-as-directory root) "pyproject.toml"))))
-
 (defmacro with-current-file (file &rest body)
   "Execute the forms in BODY while temporary visiting FILE."
   `(save-current-buffer
@@ -382,15 +476,56 @@ If OPT is non-nil, set an optional dep."
          (when (not keep)
            (kill-buffer buffer))))))
 
+(defvar-local poetry-project-name nil
+  "Name of the current poetry project.")
+
+(defvar-local poetry-project-root nil
+  "Path to the current poetry project root.")
+
+(defvar-local poetry-project-venv nil
+  "Path of the virtualenv associated to the poetry project.")
+
 (defun poetry-get-project-name ()
   "Return the current project name."
-  (let ((file (poetry-find-pyproject-file)))
-    (when file
-      (with-current-file file
-         (goto-char (point-min))
-         (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
-           (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
-             (substring-no-properties (match-string 1))))))))
+  (if poetry-project-name
+      poetry-project-name
+    (setq poetry-project-name
+          (let ((file (poetry-find-pyproject-file)))
+            (when file
+              (with-current-file file
+               (goto-char (point-min))
+               (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
+                 (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
+                   (substring-no-properties (match-string 1))))))))))
+
+(defun poetry-find-project-root ()
+  "Return the poetry project root if any."
+  (if poetry-project-root
+      poetry-project-root
+    (setq peotry-project-root
+          (locate-dominating-file default-directory "pyproject.toml"))))
+
+(defun poetry-get-virtualenv ()
+  "Return the current poetry project virtualenv."
+  (poetry-ensure-in-project)
+  (if poetry-project-venv
+      poetry-project-venv
+    (setq poetry-project-venv
+          (let ((poetry-project-name (poetry-get-project-name)))
+            (car (directory-files
+                  poetry-virtuelenv-path
+                  t
+                  (format "%s-py" (downcase poetry-project-name))))))))
+
+(defun poetry-find-pyproject-file ()
+  "Return the location of the 'pyproject.toml' file."
+  (let ((root (poetry-find-project-root)))
+    (when root
+      (concat (file-name-as-directory root) "pyproject.toml"))))
+
+(defun poetry-ensure-in-project ()
+  (when (not (poetry-find-project-root))
+    (poetry-error "Not in a poetry project.")))
 
 (defun poetry-message (mess)
   "Display the message MESS."
