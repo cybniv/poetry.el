@@ -304,6 +304,7 @@ credential to use."
 (defun poetry-shell ()
   "Spawn a shell within the virtual environment."
   (interactive)
+  (poetry-ensure-in-project)
   (shell "*poetry-shell*")
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
@@ -394,7 +395,9 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
 (defun poetry-call (command &optional output args)
   "Call poetry COMMAND with the given ARGS.
 
-if OUTPUT is non-nil, display the poetry buffer when fninshed."
+if OUTPUT is non-nil, display the poetry buffer when finished."
+  (when (not (member command '(new update)))
+    (poetry-ensure-in-project))
   (let* ((prog (or (executable-find "poetry")
                    (poetry-error "Could not find 'poetry' executable")))
          (args (if (or (string= command "run")
