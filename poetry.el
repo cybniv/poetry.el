@@ -185,7 +185,7 @@ TYPE is the type of dependency (dep, dev or opt)."
                    (list (match-string 2 package)
                          (match-string 1 package)))))
   (if (not package)
-      (poetry-message "No packages specified in pyproject.toml")
+      (poetry-error "No packages to remove.")
     (pcase type
       ("dep"
        (poetry-message (format "Removing package %s"

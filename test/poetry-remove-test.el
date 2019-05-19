@@ -65,5 +65,12 @@
              "^six (.*)$"
              (apply 'concat (poetry-get-dependencies t)))))))
 
+(ert-deftest poetry-remove-interactive-should-error-when-nothing-to-remove ()
+  (let* ((ppath (poetry-test-create-project-folder))
+         (default-directory ppath))
+    (should-error
+    (cl-letf (((symbol-function 'completing-read) (lambda (&rest ignore) nil)))
+      (call-interactively 'poetry-remove)))))
+
 
 ;;; poetry-remove-test.el ends here
