@@ -5,29 +5,7 @@
 
 * Poetry.el
 
- [[https://poetry.eustace.io/][Poetry]] in Emacs.
-
- (This is a work in progress, comments and ideas are welcome)
-
-
-** Usage
-
-Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
-The entry point is simply:
-#+BEGIN_SRC elisp
-M-x poetry
-#+END_SRC
-The interface should then be pretty much self-explanatory for poetry users:
-
-#+attr_html: :width 400px
-[[doc/screenshot1.png]]
-
-*** Tracking Poetry virtualenv
-~Poetry.el~ also provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
-You can activate this feature with
-#+BEGIN_SRC elisp
-M-x poetry-tracking-mode
-#+END_SRC
+ [[https://poetry.eustace.io/][Poetry]] (python packaging and dependency management) in Emacs.
 
 
 ** Installation
@@ -49,3 +27,24 @@ M-x poetry-tracking-mode
       (add-to-list 'load-path "/path/to/poetry.el/directory")
       (require 'poetry)
       #+END_SRC
+
+
+** Usage
+
+Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
+The entry point is simply:
+#+BEGIN_SRC elisp
+M-x poetry
+#+END_SRC
+The interface should then be pretty much self-explanatory for poetry users:
+
+#+attr_html: :width 400px
+[[doc/screenshot1.png]]
+
+*** Tracking Poetry virtualenv
+~Poetry.el~ also provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
+You can activate this feature with
+#+BEGIN_SRC elisp
+M-x poetry-tracking-mode
+#+END_SRC
+
