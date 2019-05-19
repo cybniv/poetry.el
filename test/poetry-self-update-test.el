@@ -8,6 +8,7 @@
     (poetry-add-dep "attrs")
     ;; Difficult to know what would happen, just check that it is not raising
     ;; any error
-    (poetry-self-update)))
+    (ignore-errors
+      (poetry-self-update))))
 
 ;;; poetry-self:update-test.el ends here

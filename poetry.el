@@ -59,7 +59,7 @@
 ;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
-  [:description (lambda () (format "Project: %s" (poetry-get-project-name)))
+  [:description (lambda () (format "Project: %s\n" (poetry-get-project-name)))
   [:if poetry-find-project-root
        :description "Dependencies"
        ("a" "Add" poetry-add)
@@ -131,7 +131,7 @@
 ARGS are additionnal arguments passed to ``poetry add''."
   (let ((args (cl-concatenate 'list args
                            (transient-args 'poetry-add))))
-    (poetry-call #'add nil (cl-concatenate 'list
+    (poetry-call 'add nil (cl-concatenate 'list
                                        (list package)
                                        args))))
 
@@ -423,7 +423,10 @@ if OUTPUT is non-nil, display the poetry buffer when fninshed."
         (while (re-search-forward "" nil t)
           (replace-match "" nil nil))))
 
-    (when (or output (not (= error-code 0)))
+    (when (not (= error-code 0))
+      (poetry-display-buffer)
+      (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information."))
+    (when output
       (poetry-display-buffer))))
 
 (defun poetry-display-buffer ()
