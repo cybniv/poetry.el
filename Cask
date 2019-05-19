@@ -5,6 +5,7 @@
 
 (depends-on "transient" "0.1.0")
 (depends-on "xterm-color" "1.8")
+(depends-on "pyvenv" "1.20")
 
 (development
  (depends-on "ert-runner")
