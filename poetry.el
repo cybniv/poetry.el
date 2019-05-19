@@ -463,16 +463,6 @@ If OPT is non-nil, set an optional dep."
                                deps))
                        (reverse deps))))
 
-(defun poetry-find-project-root ()
-  "Return the poetry project root if any."
-  (locate-dominating-file default-directory "pyproject.toml"))
-
-(defun poetry-find-pyproject-file ()
-  "Return the location of the 'pyproject.toml' file."
-  (let ((root (poetry-find-project-root)))
-    (when root
-      (concat (file-name-as-directory root) "pyproject.toml"))))
-
 (defmacro with-current-file (file &rest body)
   "Execute the forms in BODY while temporary visiting FILE."
   `(save-current-buffer
@@ -486,18 +476,35 @@ If OPT is non-nil, set an optional dep."
          (when (not keep)
            (kill-buffer buffer))))))
 
+(defvar-local poetry-project-name nil
+  "Name of the current poetry project.")
+
+(defvar-local poetry-project-root nil
+  "Path to the current poetry project root.")
+
 (defvar-local poetry-project-venv nil
   "Path of the virtualenv associated to the poetry project.")
 
 (defun poetry-get-project-name ()
   "Return the current project name."
-  (let ((file (poetry-find-pyproject-file)))
-    (when file
-      (with-current-file file
-         (goto-char (point-min))
-         (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
-           (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
-             (substring-no-properties (match-string 1))))))))
+  (if poetry-project-name
+      poetry-project-name
+    (setq poetry-project-name
+          (let ((file (poetry-find-pyproject-file)))
+            (when file
+              (with-current-file file
+               (goto-char (point-min))
+               (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
+                 (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
+                   (substring-no-properties (match-string 1))))))))))
+
+(defun poetry-find-project-root ()
+  "Return the poetry project root if any."
+  (if poetry-project-root
+      poetry-project-root
+    (setq peotry-project-root
+          (locate-dominating-file default-directory "pyproject.toml"))))
+
 (defun poetry-get-virtualenv ()
   "Return the current poetry project virtualenv."
   (poetry-ensure-in-project)
@@ -510,6 +517,15 @@ If OPT is non-nil, set an optional dep."
                   t
                   (format "%s-py" (downcase poetry-project-name))))))))
 
+(defun poetry-find-pyproject-file ()
+  "Return the location of the 'pyproject.toml' file."
+  (let ((root (poetry-find-project-root)))
+    (when root
+      (concat (file-name-as-directory root) "pyproject.toml"))))
+
+(defun poetry-ensure-in-project ()
+  (when (not (poetry-find-project-root))
+    (poetry-error "Not in a poetry project.")))
 
 (defun poetry-message (mess)
   "Display the message MESS."
