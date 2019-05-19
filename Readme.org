@@ -3,28 +3,28 @@
 [[https://coveralls.io/github/galaunay/poetry.el?branch=master][https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master]]
 [[https://github.com/galaunay/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
 
-** Poetry.el
+* Poetry.el
 
  [[https://poetry.eustace.io/][Poetry]] in Emacs.
 
- This is a work in progress, comments are welcome.
+ (This is a work in progress, comments and ideas are welcome)
 
 
 ** Usage
 
-*** Manage Poetry project
 Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
 The entry point is simply:
 #+BEGIN_SRC elisp
 M-x poetry
 #+END_SRC
-The interface should then be pretty much self-explanatory:
+The interface should then be pretty much self-explanatory for poetry users:
 
+#+attr_html: :width 400px
 [[doc/screenshot1.png]]
 
-*** Use Poetry virtualenv
-Poetry.el provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
-You can activate this fature with
+*** Tracking Poetry virtualenv
+~Poetry.el~ also provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
+You can activate this feature with
 #+BEGIN_SRC elisp
 M-x poetry-tracking-mode
 #+END_SRC
@@ -35,7 +35,7 @@ M-x poetry-tracking-mode
    1. Install dependencies
 
       Poetry.el needs ~transient~, ~xterm-color~ and ~pyvenv~ to be installed.
-      They are all available on MELPA.
+      All those packages are available on MELPA.
 
    2. Clone the ~poetry.el~ repository:
 
