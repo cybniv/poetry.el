@@ -6,7 +6,7 @@
 ;; URL: https://github.com/galaunay/poetry.el
 ;; Version: 0.1.0
 ;; Keywords: Python, Tools
-;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8"))
+;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8") (pyvenv "1.2"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
@@ -27,6 +27,13 @@
 ;; This package offers an interface to poetry (https://poetry.eustace.io/),
 ;; a Python dependency management and packaging command line tool.
 
+;; Poetry.el uses transient to provide a magit-like interface. The
+;; entry point is simply: `poetry'
+
+;; Poetry.el also provides a global minor mode that automatically
+;; activates the associated virtualenv when visiting a poetry project.
+;; You can activate this feature with `poetry-tracking-mode'.
+
 ;;; Code:
 
 (require 'cl-lib)
@@ -35,6 +42,8 @@
 (require 'pyvenv)
 
 ;; Variables
+;;;;;;;;;;;;
+
 (defconst poetry-version "0.1.0"
   "Poetry.el version.")
 
@@ -54,8 +63,15 @@
   :group 'poetry
   :type 'string)
 
+(defcustom poetry-repository-list '("pypi")
+  "List of repository name to register package to."
+  :group 'poetry
+  :type '(repeat string))
+
 
 ;; Transient interface
+;;;;;;;;;;;;;;;;;;;;;;
+
 ;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
@@ -125,6 +141,10 @@
   :key "-t"
   :argument "--platform=")
 
+
+;; Poetry functions
+;;;;;;;;;;;;;;;;;;;
+
 (defun poetry-call-add (package args)
   "Add PACKAGE as a new dependency to the project.
 
@@ -185,7 +205,7 @@ TYPE is the type of dependency (dep, dev or opt)."
                    (list (match-string 2 package)
                          (match-string 1 package)))))
   (if (not package)
-      (poetry-error "No packages to remove.")
+      (poetry-error "No packages to remove")
     (pcase type
       ("dep"
        (poetry-message (format "Removing package %s"
@@ -272,7 +292,7 @@ REPO is the repository and USERNAME and PASSWORD the
 credential to use."
   (interactive (list
                 (completing-read "Repository: "
-                                 '("pypi"))
+                                 poetry-repository-list)
                 (read-from-minibuffer "Username: ")
                 (read-passwd "Password: ")))
   (poetry-call 'publish
@@ -316,7 +336,9 @@ credential to use."
   (interactive)
   (poetry-call 'self:update))
 
+
 ;; Virtualenv
+;;;;;;;;;;;;;
 
 ;;;###autoload
 (defun poetry-venv-workon ()
@@ -331,15 +353,15 @@ credential to use."
   (interactive)
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
-        (poetry-error "No virtualenv activated.")
+        (poetry-error "No virtualenv activated")
       (if (not (equal (file-name-as-directory venv)
                       (file-name-as-directory pyvenv-virtual-env)))
-          (poetry-error "Current poetry virtualenv not activated.")
+          (poetry-error "Current poetry virtualenv not activated")
         (pyvenv-deactivate)))))
 
 ;;;###autoload
 (defun poetry-venv-toggle ()
-  "Activate or deactivate the virtualenv associated to the current poetry project."
+  "Toggle the virtualenv associated to the current poetry project."
   (interactive)
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
@@ -349,7 +371,9 @@ credential to use."
           (poetry-venv-deactivate)
         (poetry-venv-workon)))))
 
+
 ;; Virtualenv tracking
+;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;###autoload
 (define-minor-mode poetry-tracking-mode
@@ -391,7 +415,10 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
       (pyvenv-activate poetry-saved-venv)
       (setq poetry-saved-venv nil)))))
 
+
 ;; Helpers
+;;;;;;;;;;
+
 (defun poetry-call (command &optional output args)
   "Call poetry COMMAND with the given ARGS.
 
@@ -428,7 +455,7 @@ if OUTPUT is non-nil, display the poetry buffer when finished."
 
     (when (not (= error-code 0))
       (poetry-display-buffer)
-      (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information."))
+      (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information"))
     (when output
       (poetry-display-buffer))))
 
@@ -444,24 +471,24 @@ if OUTPUT is non-nil, display the poetry buffer when finished."
 If DEV is non-nil, install a developement dep.
 If OPT is non-nil, set an optional dep."
   (with-current-file (poetry-find-pyproject-file)
-                     (goto-char (point-min))
-                     (if dev
-                         (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
-                       (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
-                     (let ((beg (point))
-                           (end (progn (re-search-forward "^\\[")
-                                       (point)))
-                           (regex (if (not opt)
-                                      "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
-                                    "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
-                           deps)
-                       (goto-char beg)
-                       (while (re-search-forward regex end t)
-                         (push (format "%s (%s)"
-                                       (substring-no-properties (match-string 1))
-                                       (substring-no-properties (match-string 2)))
-                               deps))
-                       (reverse deps))))
+     (goto-char (point-min))
+     (if dev
+         (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
+       (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
+     (let ((beg (point))
+           (end (progn (re-search-forward "^\\[")
+                       (point)))
+           (regex (if (not opt)
+                      "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
+                    "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
+           deps)
+       (goto-char beg)
+       (while (re-search-forward regex end t)
+         (push (format "%s (%s)"
+                       (substring-no-properties (match-string 1))
+                       (substring-no-properties (match-string 2)))
+               deps))
+       (reverse deps))))
 
 (defmacro with-current-file (file &rest body)
   "Execute the forms in BODY while temporary visiting FILE."
@@ -524,8 +551,9 @@ If OPT is non-nil, set an optional dep."
       (concat (file-name-as-directory root) "pyproject.toml"))))
 
 (defun poetry-ensure-in-project ()
+  "Return an error if not in a poetry project."
   (when (not (poetry-find-project-root))
-    (poetry-error "Not in a poetry project.")))
+    (poetry-error "Not in a poetry project")))
 
 (defun poetry-message (mess)
   "Display the message MESS."
