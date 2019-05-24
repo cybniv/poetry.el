@@ -315,8 +315,24 @@ credential to use."
 ;;;###autoload
 (defun poetry-run (command)
   "Run COMMAND in the appropriate environment."
-  ;; TODO: add completion with scripts from pyptoject.toml
-  (interactive "sCommand: ")
+  (poetry-ensure-in-project)
+  (interactive (list (completing-read "Command: "
+           (let* ((file (poetry-find-pyproject-file))
+                  scripts '())
+             (when file
+               (with-current-file file
+                (goto-char (point-min))
+                (when (re-search-forward
+                       "^\\[tool\\.poetry\\.scripts\\]$" nil t)
+                  (forward-line 1)
+                  (beginning-of-line)
+                  (while (re-search-forward
+                          "^\\([^=]+\\)[[:space:]]*=[[:space:]]*\".*\"$"
+                          (line-end-position) t)
+                    (push (substring-no-properties (match-string 1)) scripts)
+                    (forward-line)
+                    (beginning-of-line)))))
+             scripts))))
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
 ;; Poetry shell
