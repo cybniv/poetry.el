@@ -6,7 +6,7 @@
 ;; URL: https://github.com/galaunay/poetry.el
 ;; Keywords: Python, Tools
 ;; Package-Version: 0.1.0
-;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8") (pyvenv "1.2") (emacs "24.3"))
+;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8") (pyvenv "1.2") (emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
