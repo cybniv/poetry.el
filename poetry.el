@@ -331,8 +331,10 @@ credential to use."
     ;; Open __init__.py
     (find-file (concat (file-name-as-directory
                         (concat (file-name-as-directory path)
-                                (downcase
-                                project-name)))
+                                (replace-regexp-in-string
+                                 "-"
+                                 "_"
+                                 (downcase project-name))))
                         "__init__.py"))
     ;; make sure the virtualenv is created
     (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
@@ -574,11 +576,13 @@ If OPT is non-nil, set an optional dep."
   (if poetry-project-venv
       poetry-project-venv
     (setq poetry-project-venv
-          (let ((poetry-project-name (poetry-get-project-name)))
-            (car (directory-files
-                  poetry-virtuelenv-path
-                  t
-                  (format "%s-py" (downcase poetry-project-name))))))))
+          (or
+           (let ((poetry-project-name (poetry-get-project-name)))
+             (car (directory-files
+                   poetry-virtuelenv-path
+                   t
+                   (format "%s-py" (downcase poetry-project-name)))))
+           (poetry-error "No virtualenv associated to this project")))))
 
 (defun poetry-find-pyproject-file ()
   "Return the location of the 'pyproject.toml' file."
