@@ -321,7 +321,8 @@ credential to use."
 (defun poetry-new (path)
   "Create a new Python project at PATH."
   (interactive "GProject path: ")
-  (let ((default-directory path))
+  (let* ((path (expand-file-name path))
+        (default-directory path))
     (poetry-message (format "Creating new project: %s" path))
     (unless (file-directory-p path)
       (make-directory path))
