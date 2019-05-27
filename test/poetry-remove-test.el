@@ -2,8 +2,8 @@
 
 
 (ert-deftest poetry-remove-should-remove-dependency ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (poetry-remove "atomicwrites" "dep")
@@ -16,8 +16,8 @@
              (apply 'concat (poetry-get-dependencies nil t)))))))
 
 (ert-deftest poetry-remove-should-remove-dev-dependency ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dev-dep "atomicwrites")
     (poetry-add-dev-dep "attrs")
     (poetry-remove "atomicwrites" "dev")
@@ -30,8 +30,8 @@
              (apply 'concat (poetry-get-dependencies nil t)))))))
 
 (ert-deftest poetry-remove-should-remove-opt-dependency ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-opt-dep "atomicwrites")
     (poetry-add-opt-dep "attrs")
     (poetry-remove "atomicwrites" "opt")
@@ -44,8 +44,8 @@
              (apply 'concat (poetry-get-dependencies nil t)))))))
 
 (ert-deftest poetry-remove-interactive-should-propose-package-list ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dev-dep "attrs")
     (poetry-add-opt-dep "six")
@@ -66,8 +66,8 @@
              (apply 'concat (poetry-get-dependencies t)))))))
 
 (ert-deftest poetry-remove-interactive-should-error-when-nothing-to-remove ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (should-error
     (cl-letf (((symbol-function 'completing-read) (lambda (&rest ignore) nil)))
       (call-interactively 'poetry-remove)))))

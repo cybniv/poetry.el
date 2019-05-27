@@ -61,7 +61,6 @@
     (let* ((ppath (poetry-test-create-project-folder))
            (ppath2 (poetry-test-create-project-folder))
            (not-project-path (make-temp-file "poetry-not-project")))
-
       (find-file ppath)
       (poetry-add-dep "atomicwrites")
       (find-file ppath2)

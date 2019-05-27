@@ -1,8 +1,8 @@
 ;;; poetry-publish-test.el --- Tests for poetry.el
 
 (ert-deftest poetry-publish-should-publish ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (poetry-build)
@@ -13,8 +13,8 @@
                 (re-search-forward "^Publishing poetry.*$" nil t)))))
 
 (ert-deftest poetry-publish-interactive-should-offer-completion ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (poetry-build)

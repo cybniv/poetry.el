@@ -322,7 +322,8 @@ credential to use."
   "Create a new Python project at PATH."
   (interactive "GProject path: ")
   (let* ((path (expand-file-name path))
-        (default-directory path))
+         (project-name (file-name-base path))
+         (default-directory path))
     (poetry-message (format "Creating new project: %s" path))
     (unless (file-directory-p path)
       (make-directory path))
@@ -331,7 +332,7 @@ credential to use."
     (find-file (concat (file-name-as-directory
                         (concat (file-name-as-directory path)
                                 (downcase
-                                (poetry-get-project-name))))
+                                project-name)))
                         "__init__.py"))
     ;; make sure the virtualenv is created
     (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))

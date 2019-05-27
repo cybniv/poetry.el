@@ -2,8 +2,8 @@
 
 
 (ert-deftest poetry-install-should-install-dep ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (poetry-install)

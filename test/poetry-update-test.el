@@ -2,8 +2,8 @@
 
 
 (ert-deftest poetry-update-should-update-dep ()
-  (let* ((ppath (poetry-test-create-project-folder))
-         (default-directory ppath))
+  (let ((ppath (poetry-test-create-project-folder)))
+    (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
     (poetry-update)
