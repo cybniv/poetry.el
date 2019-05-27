@@ -70,6 +70,23 @@
   :type '(repeat string))
 
 
+;; Macros
+;;;;;;;;;
+
+(defmacro poetry-with-current-file (file &rest body)
+  "Execute the forms in BODY while temporary visiting FILE."
+  `(save-current-buffer
+     (let* ((file ,file)
+            (keep (find-buffer-visiting file))
+            (buffer (find-file-noselect file)))
+       (set-buffer buffer)
+       (prog1
+           (progn
+             ,@body)
+         (when (not keep)
+           (kill-buffer buffer))))))
+
+
 ;; Transient interface
 ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -316,10 +333,9 @@ credential to use."
 ;;;###autoload
 (defun poetry-run (command)
   "Run COMMAND in the appropriate environment."
-  (poetry-ensure-in-project)
   (interactive (list (completing-read "Command: "
            (let* ((file (poetry-find-pyproject-file))
-                  scripts '())
+                  (scripts '()))
              (when file
                (poetry-with-current-file file
                 (goto-char (point-min))
@@ -334,6 +350,7 @@ credential to use."
                     (forward-line)
                     (beginning-of-line)))))
              scripts))))
+  (poetry-ensure-in-project)
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
 ;; Poetry shell
@@ -513,19 +530,6 @@ If OPT is non-nil, set an optional dep."
                deps))
        (reverse deps))))
 
-(defmacro poetry-with-current-file (file &rest body)
-  "Execute the forms in BODY while temporary visiting FILE."
-  `(save-current-buffer
-     (let* ((file ,file)
-            (keep (find-buffer-visiting file))
-            (buffer (find-file-noselect file)))
-       (set-buffer buffer)
-       (prog1
-           (progn
-             ,@body)
-         (when (not keep)
-           (kill-buffer buffer))))))
-
 (defvar-local poetry-project-name nil
   "Name of the current poetry project.")
 
@@ -553,7 +557,7 @@ If OPT is non-nil, set an optional dep."
   "Return the poetry project root if any."
   (if poetry-project-root
       poetry-project-root
-    (setq peotry-project-root
+    (setq poetry-project-root
           (locate-dominating-file default-directory "pyproject.toml"))))
 
 (defun poetry-get-virtualenv ()
