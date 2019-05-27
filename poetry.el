@@ -1,12 +1,12 @@
-;;; poetry.el --- poetry in Emacs -*- lexical-binding: t -*-
+;;; poetry.el --- Poetry in Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-  Gaby Launay
 
 ;; Author: Gaby Launay <gaby.launay@protonmail.com>
 ;; URL: https://github.com/galaunay/poetry.el
-;; Version: 0.1.0
 ;; Keywords: Python, Tools
-;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8") (pyvenv "1.2"))
+;; Package-Version: 0.1.0
+;; Package-Requires: ((transient "0.1.0") (xterm-color "1.8") (pyvenv "1.2") (emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
@@ -49,7 +49,8 @@
 
 (defgroup poetry nil
   "Poetry in Emacs."
-  :prefix "poetry-")
+  :prefix "poetry-"
+  :group 'tools)
 
 (defcustom poetry-virtuelenv-path
   (cond
@@ -320,7 +321,7 @@ credential to use."
            (let* ((file (poetry-find-pyproject-file))
                   scripts '())
              (when file
-               (with-current-file file
+               (poetry-with-current-file file
                 (goto-char (point-min))
                 (when (re-search-forward
                        "^\\[tool\\.poetry\\.scripts\\]$" nil t)
@@ -353,8 +354,8 @@ credential to use."
   (poetry-call 'self:update))
 
 
-;; Virtualenv
-;;;;;;;;;;;;;
+;; Virtualenv support
+;;;;;;;;;;;;;;;;;;;;;
 
 ;;;###autoload
 (defun poetry-venv-workon ()
@@ -486,7 +487,7 @@ if OUTPUT is non-nil, display the poetry buffer when finished."
 
 If DEV is non-nil, install a developement dep.
 If OPT is non-nil, set an optional dep."
-  (with-current-file (poetry-find-pyproject-file)
+  (poetry-with-current-file (poetry-find-pyproject-file)
      (goto-char (point-min))
      (if dev
          (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
@@ -506,7 +507,7 @@ If OPT is non-nil, set an optional dep."
                deps))
        (reverse deps))))
 
-(defmacro with-current-file (file &rest body)
+(defmacro poetry-with-current-file (file &rest body)
   "Execute the forms in BODY while temporary visiting FILE."
   `(save-current-buffer
      (let* ((file ,file)
@@ -535,12 +536,13 @@ If OPT is non-nil, set an optional dep."
     (setq poetry-project-name
           (let ((file (poetry-find-pyproject-file)))
             (when file
-              (with-current-file file
+              (poetry-with-current-file file
                (goto-char (point-min))
                (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
                  (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
                    (substring-no-properties (match-string 1))))))))))
 
+;;;###autoload
 (defun poetry-find-project-root ()
   "Return the poetry project root if any."
   (if poetry-project-root
