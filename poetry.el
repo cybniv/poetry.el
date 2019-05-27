@@ -327,6 +327,12 @@ credential to use."
     (unless (file-directory-p path)
       (make-directory path))
     (poetry-call 'new nil (list path))
+    ;; Open __init__.py
+    (find-file (concat (file-name-as-directory
+                        (concat (file-name-as-directory path)
+                                (downcase
+                                (poetry-get-project-name))))
+                        "__init__.py"))
     ;; make sure the virtualenv is created
     (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
 
