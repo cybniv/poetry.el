@@ -490,10 +490,16 @@ If OPT is non-nil, set an optional dep."
   (poetry-with-current-file (poetry-find-pyproject-file)
      (goto-char (point-min))
      (if dev
-         (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$")
-       (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"))
+         (when (not
+                (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$"
+                                   nil t))
+           (poetry-error "No dependencies to remove"))
+       (when (not
+              (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"
+                                 nil t))
+         (poetry-error "No dependencies to remove")))
      (let ((beg (point))
-           (end (progn (re-search-forward "^\\[")
+           (end (progn (re-search-forward "^\\[" nil t)
                        (point)))
            (regex (if (not opt)
                       "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
