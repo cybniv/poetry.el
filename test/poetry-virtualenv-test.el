@@ -9,9 +9,9 @@
              (lambda (dir &optional full match nosort)
                (list (format "%s%s" (file-name-as-directory dir)
                              (downcase (poetry-get-project-name)))))))
-    (let* ((ppath (poetry-test-create-project-folder))
-           (ppath2 (poetry-test-create-project-folder))
-           (default-directory ppath))
+    (let ((ppath (poetry-test-create-project-folder))
+           (ppath2 (poetry-test-create-project-folder)))
+      (find-file ppath)
       (poetry-add-dep "atomicwrites")
       ;; should activate the venv
       (poetry-venv-workon)
@@ -27,13 +27,10 @@
       (should (not pyvenv-virtual-env))
       ;; 'toggle' should activate even if there is another venv activated
       (poetry-venv-workon)
-      (let ((default-directory ppath2)
-            (poetry-project-venv nil)
-            (poetry-project-name nil)
-            (poetry-project-root nil))
+      (find-file ppath2)
         (poetry-venv-toggle)
         (should (string-match "pypoetry/virtualenvs/poetry"
-                              pyvenv-virtual-env))))))
+                              pyvenv-virtual-env)))))
 
 (ert-deftest poetry-virtualenv-should-error ()
   (cl-letf (((symbol-function 'pyvenv-activate)
@@ -43,15 +40,15 @@
              (lambda (dir &optional full match nosort)
                (list (format "%s%s" (file-name-as-directory dir)
                              (downcase (poetry-get-project-name)))))))
-    (let* ((ppath (poetry-test-create-project-folder))
-           (ppath2 (poetry-test-create-project-folder))
-           (default-directory ppath))
+    (let ((ppath (poetry-test-create-project-folder))
+          (ppath2 (poetry-test-create-project-folder)))
+      (find-file ppath)
       ;; try to deactivate when nothing activated
       (should-error (poetry-venv-deactivate))
       (poetry-venv-workon)
       ;; try to deactivate when the current venv is another venv
-      (let (default-directory ppath2)
-        (should-error (poetry-venv-deactivate))))))
+      (find-file ppath2)
+      (should-error (poetry-venv-deactivate)))))
 
 (ert-deftest poetry-should-track-virtualenvs ()
   (cl-letf (((symbol-function 'pyvenv-activate)
@@ -62,27 +59,27 @@
                (list (format "%s%s" (file-name-as-directory dir)
                              (downcase (poetry-get-project-name)))))))
     (let* ((ppath (poetry-test-create-project-folder))
-           (ppath2 (poetry-test-create-project-folder)))
-      (let ((default-directory ppath))
-        (poetry-add-dep "atomicwrites"))
-      (let ((default-directory ppath2))
-        (poetry-add-dep "attrs"))
+           (ppath2 (poetry-test-create-project-folder))
+           (not-project-path (make-temp-file "poetry-not-project")))
+
+      (find-file ppath)
+      (poetry-add-dep "atomicwrites")
+      (find-file ppath2)
+      (poetry-add-dep "attrs")
+      (find-file not-project-path)
       (poetry-tracking-mode 1)
       ;; project 1
-      (message "Project1")
       (find-file (concat (file-name-as-directory ppath)
                          "file1.py"))
       (run-hooks 'post-command-hook)
       (should (string-match "pypoetry/virtualenvs/poetry" pyvenv-virtual-env))
       ;; project 2
-      (message "Project2")
       (find-file (concat (file-name-as-directory ppath2)
                          "file1.py"))
       (run-hooks 'post-command-hook)
       (should (string-match "pypoetry/virtualenvs/poetry" pyvenv-virtual-env))
       ;; directory 3 (not poetry)
-      (message "File3")
-      (switch-to-buffer "*scratch*")
+      (find-file not-project-path)
       (run-hooks 'post-command-hook)
       (should (not pyvenv-virtual-env))
       ;;
@@ -96,17 +93,20 @@
              (lambda (dir &optional full match nosort)
                (list (format "%s%s" (file-name-as-directory dir)
                              (downcase (poetry-get-project-name)))))))
-    (let* ((ppath (poetry-test-create-project-folder))
+    (let ((ppath (poetry-test-create-project-folder))
+           (not_ppath (make-temp-file "poetry_not_python"))
            (pyvenv-virtual-env "/path/to/global/venv"))
+      ;; not in a project, venv should be global
+      (find-file not_ppath)
       (poetry-tracking-mode 1)
-      ;; venv should be global
       (should (string-match "/path/to/global/venv" pyvenv-virtual-env))
-      (let ((default-directory ppath))
-        (run-hooks 'post-command-hook)
-        ;; venv should be poetry one
-        (should (string-match "pypoetry/virtualenvs/poetry"
-                              pyvenv-virtual-env)))
-      ;; venv should be be restored to global
+      ;; in a project, venv should be the project one
+      (find-file ppath)
+      (run-hooks 'post-command-hook)
+      (should (string-match "pypoetry/virtualenvs/poetry"
+                            pyvenv-virtual-env))
+      ;; leaving the project, venv should be restored to global
+      (find-file not_ppath)
       (run-hooks 'post-command-hook)
       (should (string-match "/path/to/global/venv" pyvenv-virtual-env)))))
 
