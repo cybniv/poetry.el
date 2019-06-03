@@ -19,7 +19,7 @@
     (poetry-add-dep "attrs")
     (poetry-build)
     (cl-letf (((symbol-function 'completing-read) (lambda (&rest ignore) "pypi"))
-              ((symbol-function 'read-from-minibuffer) (lambda (&rest ignore) "username"))
+              ((symbol-function 'read-string) (lambda (&rest ignore) "username"))
               ((symbol-function 'read-passwd) (lambda (&rest ignore) "password")))
       (ignore-errors
         (call-interactively 'poetry-publish))

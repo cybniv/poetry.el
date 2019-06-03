@@ -1,4 +1,4 @@
-;;; poetry.el --- Poetry in Emacs -*- lexical-binding: t -*-
+;;; poetry.el --- Interface to Poetry -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-  Gaby Launay
 
@@ -44,9 +44,6 @@
 ;; Variables
 ;;;;;;;;;;;;
 
-(defconst poetry-version "0.1.0"
-  "Poetry.el version.")
-
 (defgroup poetry nil
   "Poetry in Emacs."
   :prefix "poetry-"
@@ -54,19 +51,18 @@
 
 (defcustom poetry-virtuelenv-path
   (cond
-   ((string-match "ms-dos" (symbol-name system-type))
+   ((or (eq system-type 'ms-dos)
+        (eq system-type 'windows-nt))
     (expand-file-name "%APPDATA%/Local/pypoetry/Cache/virtualenvs"))
-   ((string-match "darwin" (symbol-name system-type))
+   ((eq system-type 'darwin)
     (expand-file-name "~/Library/Caches/pypoetry/virtualenvs"))
    (t
     (expand-file-name "~/.cache/pypoetry/virtualenvs")))
   "Path to poetry virtualenvs directory."
-  :group 'poetry
   :type 'string)
 
 (defcustom poetry-repository-list '("pypi")
   "List of repository name to register package to."
-  :group 'poetry
   :type '(repeat string))
 
 
@@ -83,7 +79,7 @@
        (prog1
            (progn
              ,@body)
-         (when (not keep)
+         (unless keep
            (kill-buffer buffer))))))
 
 
@@ -194,7 +190,6 @@ ARGS are additionnal arguments passed to ``poetry add''."
   (poetry-message (format "Adding optional dependency: %s" package))
   (poetry-call-add package '("--optional")))
 
-;; Poetry remove
 ;;;###autoload
 (defun poetry-remove (package type)
   "Remove PACKAGE from the project dependencies.
@@ -246,35 +241,30 @@ TYPE is the type of dependency (dep, dev or opt)."
   "Remove PACKAGE from the project development dependencies."
   (poetry-call 'remove nil (list package "-D")))
 
-;; Poetry check
 ;;;###autoload
 (defun poetry-check ()
   "Check the validity of the pyproject.toml file."
   (interactive)
   (poetry-call 'check t))
 
-;; Poetry install
 ;;;###autoload
 (defun poetry-install ()
   "Install the project dependencies."
   (interactive)
   (poetry-call 'install))
 
-;; Poetry lock
 ;;;###autoload
 (defun poetry-lock ()
   "Locks the project dependencies."
   (interactive)
   (poetry-call 'lock))
 
-;; Poetry update
 ;;;###autoload
 (defun poetry-update ()
   "Update dependencies as according to the pyproject.toml file."
   (interactive)
   (poetry-call 'update))
 
-;; Poetry show
 (defun poetry-show-get-packages ()
   "Return the list of package description for show."
   (poetry-call 'show)
@@ -294,14 +284,12 @@ TYPE is the type of dependency (dep, dev or opt)."
   (string-match "^\\([^[:space:]]*\\).*$" package)
   (poetry-call 'show t (list (match-string 1 package))))
 
-;; Poetry build
 ;;;###autoload
 (defun poetry-build ()
   "Build a package, as a tarball and a wheel by default."
   (interactive)
   (poetry-call 'build))
 
-;; Poetry publish
 ;;;###autoload
 (defun poetry-publish (repo username password)
   "Publish the package to a remote repository.
@@ -311,12 +299,11 @@ credential to use."
   (interactive (list
                 (completing-read "Repository: "
                                  poetry-repository-list)
-                (read-from-minibuffer "Username: ")
+                (read-string "Username: ")
                 (read-passwd "Password: ")))
   (poetry-call 'publish
                (list "-r" repo "-u" username "-p" password)))
 
-;; Poetry new
 ;;;###autoload
 (defun poetry-new (path)
   "Create a new Python project at PATH."
@@ -339,7 +326,6 @@ credential to use."
     ;; make sure the virtualenv is created
     (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
 
-;; Poetry run
 ;;;###autoload
 (defun poetry-run (command)
   "Run COMMAND in the appropriate environment."
@@ -363,7 +349,6 @@ credential to use."
   (poetry-ensure-in-project)
   (poetry-call 'run t (split-string command "[[:space:]]+" t)))
 
-;; Poetry shell
 ;;;###autoload
 (defun poetry-shell ()
   "Spawn a shell within the virtual environment."
@@ -373,7 +358,6 @@ credential to use."
   (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
                        "poetry shell\n"))
 
-;; Poetry update
 ;;;###autoload
 (defun poetry-self-update ()
   "Update poetry to the latest version."
@@ -421,8 +405,14 @@ credential to use."
 
 ;;;###autoload
 (define-minor-mode poetry-tracking-mode
-  "Global minor mode to track the current poetry virtualenv."
+  "Global minor mode to track the current poetry virtualenv.
+
+For every project, Poetry automatically creates a virtualenv and install the project dependencies in it.
+This minor mode automatically activates the relevant Poetry virtualenv when visiting a project file.
+
+It ensures that your python scripts are always executed in the right environment."
   :global t
+  :group 'poetry
   (if poetry-tracking-mode
       (add-hook 'post-command-hook 'poetry-track-virtualenv)
     (remove-hook 'post-command-hook 'poetry-track-virtualenv)))
@@ -467,7 +457,7 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
   "Call poetry COMMAND with the given ARGS.
 
 if OUTPUT is non-nil, display the poetry buffer when finished."
-  (when (not (member command '(new update)))
+  (unless (member command '(new update))
     (poetry-ensure-in-project))
   (let* ((prog (or (executable-find "poetry")
                    (poetry-error "Could not find 'poetry' executable")))
@@ -497,7 +487,7 @@ if OUTPUT is non-nil, display the poetry buffer when finished."
         (while (re-search-forward "" nil t)
           (replace-match "" nil nil))))
 
-    (when (not (= error-code 0))
+    (unless (= error-code 0)
       (poetry-display-buffer)
       (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information"))
     (when output
@@ -517,13 +507,13 @@ If OPT is non-nil, set an optional dep."
   (poetry-with-current-file (poetry-find-pyproject-file)
      (goto-char (point-min))
      (if dev
-         (when (not
-                (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$"
-                                   nil t))
+         (unless
+             (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$"
+                                nil t)
            (poetry-error "No dependencies to remove"))
-       (when (not
+       (unless
               (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"
-                                 nil t))
+                                 nil t)
          (poetry-error "No dependencies to remove")))
      (let ((beg (point))
            (end (progn (re-search-forward "^\\[" nil t)
@@ -551,38 +541,35 @@ If OPT is non-nil, set an optional dep."
 
 (defun poetry-get-project-name ()
   "Return the current project name."
-  (if poetry-project-name
-      poetry-project-name
-    (setq poetry-project-name
-          (let ((file (poetry-find-pyproject-file)))
-            (when file
-              (poetry-with-current-file file
-               (goto-char (point-min))
-               (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
-                 (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
-                   (substring-no-properties (match-string 1))))))))))
+  (or poetry-project-name
+      (setq poetry-project-name
+            (let ((file (poetry-find-pyproject-file)))
+              (when file
+                (poetry-with-current-file file
+                   (goto-char (point-min))
+                   (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
+                     (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
+                       (substring-no-properties (match-string 1))))))))))
 
 ;;;###autoload
 (defun poetry-find-project-root ()
   "Return the poetry project root if any."
-  (if poetry-project-root
-      poetry-project-root
-    (setq poetry-project-root
-          (locate-dominating-file default-directory "pyproject.toml"))))
+  (or poetry-project-root
+      (setq poetry-project-root
+            (locate-dominating-file default-directory "pyproject.toml"))))
 
 (defun poetry-get-virtualenv ()
   "Return the current poetry project virtualenv."
   (poetry-ensure-in-project)
-  (if poetry-project-venv
-      poetry-project-venv
-    (setq poetry-project-venv
-          (or
-           (let ((poetry-project-name (poetry-get-project-name)))
-             (car (directory-files
-                   poetry-virtuelenv-path
-                   t
-                   (format "%s-py" (downcase poetry-project-name)))))
-           (poetry-error "No virtualenv associated to this project")))))
+  (or poetry-project-venv
+      (setq poetry-project-venv
+            (or
+             (let ((poetry-project-name (poetry-get-project-name)))
+              (car (directory-files
+                     poetry-virtuelenv-path
+                     t
+                     (format "%s-py" (downcase poetry-project-name)))))
+             (poetry-error "No virtualenv associated to this project")))))
 
 (defun poetry-find-pyproject-file ()
   "Return the location of the 'pyproject.toml' file."
@@ -592,22 +579,16 @@ If OPT is non-nil, set an optional dep."
 
 (defun poetry-ensure-in-project ()
   "Return an error if not in a poetry project."
-  (when (not (poetry-find-project-root))
+  (unless (poetry-find-project-root)
     (poetry-error "Not in a poetry project")))
 
 (defun poetry-message (mess)
   "Display the message MESS."
-  (let ((name (poetry-get-project-name)))
-    (if name
-        (message "[%s] %s" name mess)
-    (message "[Poetry] %s" mess))))
+  (message "[%s] %s" (or (poetry-get-project-name) "Poetry") mess))
 
 (defun poetry-error (mess)
   "Display the error MESS."
-  (let ((name (poetry-get-project-name)))
-    (if name
-        (error "[%s] %s" name mess)
-    (error "[Poetry] %s" mess))))
+  (error "[%s] %s" (or (poetry-get-project-name) "Poetry") mess))
 
 
 (provide 'poetry)
