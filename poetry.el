@@ -34,15 +34,18 @@
 ;; activates the associated virtualenv when visiting a poetry project.
 ;; You can activate this feature with `poetry-tracking-mode'.
 
+
 ;;; Code:
 
 (require 'cl-lib)
 (require 'transient)
-(require 'xterm-color)
 (require 'pyvenv)
+(require 'subr-x)
+
 
 ;; Variables
 ;;;;;;;;;;;;
+
 
 (defgroup poetry nil
   "Poetry in Emacs."
@@ -164,10 +167,10 @@
 
 ARGS are additionnal arguments passed to ``poetry add''."
   (let ((args (cl-concatenate 'list args
-                           (transient-args 'poetry-add))))
-    (poetry-call 'add nil (cl-concatenate 'list
-                                       (list package)
-                                       args))))
+                              (transient-args 'poetry-add))))
+    (poetry-call 'add (cl-concatenate 'list
+                                      (list package)
+                                      args))))
 
 ;;;###autoload
 (defun poetry-add-dep (package)
@@ -241,17 +244,17 @@ TYPE is the type of dependency (dep, dev or opt)."
 
 (defun poetry-remove-dep (package)
   "Remove PACKAGE from the project dependencies."
-  (poetry-call 'remove nil (list package)))
+  (poetry-call 'remove (list package)))
 
 (defun poetry-remove-dev-dep (package)
   "Remove PACKAGE from the project development dependencies."
-  (poetry-call 'remove nil (list package "-D")))
+  (poetry-call 'remove (list package "-D")))
 
 ;;;###autoload
 (defun poetry-check ()
   "Check the validity of the pyproject.toml file."
   (interactive)
-  (poetry-call 'check t))
+  (poetry-call 'check nil nil t t))
 
 ;;;###autoload
 (defun poetry-install ()
@@ -273,13 +276,12 @@ TYPE is the type of dependency (dep, dev or opt)."
 
 (defun poetry-show-get-packages ()
   "Return the list of package description for show."
-  (poetry-call 'show)
-  (with-current-buffer "*poetry*"
-    (goto-char (point-min))
-    (let (packs)
-      (while (re-search-forward "^\\(.+\\)$" nil t)
-        (push (match-string 1) packs))
-      packs)))
+  (let ((compbufname (poetry-call 'show nil nil nil t)))
+    (with-current-buffer compbufname
+      (let (packs)
+        (while (re-search-forward "^\\(.+\\)$" nil t)
+          (push (match-string 1) packs))
+        packs))))
 
 ;;;###autoload
 (defun poetry-show (package)
@@ -288,7 +290,7 @@ TYPE is the type of dependency (dep, dev or opt)."
    (list (completing-read "Package: "
                           (poetry-show-get-packages))))
   (string-match "^\\([^[:space:]]*\\).*$" package)
-  (poetry-call 'show t (list (match-string 1 package))))
+  (poetry-call 'show (list (match-string 1 package)) nil t t))
 
 ;;;###autoload
 (defun poetry-build ()
@@ -320,7 +322,7 @@ credential to use."
     (poetry-message (format "Creating new project: %s" path))
     (unless (file-directory-p path)
       (make-directory path))
-    (poetry-call 'new nil (list path))
+    (poetry-call 'new (list path) path nil t)
     ;; Open __init__.py
     (find-file (concat (file-name-as-directory
                         (concat (file-name-as-directory path)
@@ -331,7 +333,7 @@ credential to use."
                        "__init__.py"))
     (save-buffer)
     ;; make sure the virtualenv is created
-    (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
+    (poetry-call 'run (split-string "python -V" "[[:space:]]+" t))))
 
 ;;;###autoload
 (defun poetry-run (command)
@@ -354,15 +356,16 @@ credential to use."
                     (beginning-of-line)))))
              scripts))))
   (poetry-ensure-in-project)
-  (poetry-call 'run t (split-string command "[[:space:]]+" t)))
+  (poetry-call 'run (split-string command "[[:space:]]+" t) nil t t))
 
 ;;;###autoload
 (defun poetry-shell ()
   "Spawn a shell within the virtual environment."
   (interactive)
   (poetry-ensure-in-project)
-  (shell "*poetry-shell*")
-  (process-send-string (get-buffer-process (get-buffer "*poetry-shell*"))
+  (shell (poetry-buffer-name "shell"))
+  (process-send-string (get-buffer-process
+                        (get-buffer (poetry-buffer-name "shell")))
                        "poetry shell\n"))
 
 ;;;###autoload
@@ -465,54 +468,145 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
       (setq poetry-saved-venv nil)))))
 
 
+;; Asynchroneous call to poetry
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar poetry-call-queue '()
+  "Poetry call queue.
+
+Each element of the list is an operation to perform.
+Operation are executed sequentially until the list is empty.")
+
+(defvar poetry-process nil
+  "Poetry compilation process.")
+
+(defun poetry-call (command &optional args project output blocking)
+  "Call poetry COMMAND with the given ARGS.
+
+If OUTPUT is non-nil, display the compilation buffer.
+PROJECT is the poetry project you want the command to run (default to current project).
+If BLOCKING is non-nil, wait until the compilation is over and return the
+compilation buffer name."
+  ;; Wait for the queue to finish when making a blocking call
+  (when (and blocking (poetry--busy-p))
+    (poetry-message "Waiting for previous operations to finish...")
+    (while (and blocking (poetry--busy-p))
+      (sleep-for .1)))
+  ;; Add the call to the queue if already busy
+  (if (poetry--busy-p)
+      (add-to-list 'poetry-call-queue (list command args
+                                            (or project
+                                                (poetry-find-project-root))
+                                            output blocking)
+                   t)
+    ;; Else, run the call
+    (poetry-do-call command args project output blocking)))
+
+(defun poetry-do-call (command &optional args project output blocking)
+  "Call poetry COMMAND with the given ARGS.
+
+Not queue-safe version of `poetry-call'.
+
+If OUTPUT is non-nil, display the compilation buffer.
+PROJECT is the poetry project you want the command to run (default to current project).
+If BLOCKING is non-nil, wait until the compilation is over and return the
+compilation buffer name."
+  (let ((default-directory (or project
+                               (poetry-find-project-root)
+                               default-directory)))
+    (unless (member command '(new update))
+      (poetry-ensure-in-project))
+    (let* ((prog (or (executable-find "poetry")
+                     (poetry-error "Could not find 'poetry' executable")))
+           (args (if (or (string= command "run")
+                         (string= command "init"))
+                     (cl-concatenate 'list (list (symbol-name command))
+                                     args)
+                   (cl-concatenate 'list (list "-n" "--ansi"
+                                               (symbol-name command))
+                                   args))))
+      (let ((compilation-buffer-name-function
+             (lambda (mode) (poetry-buffer-name)))
+            (compilation-ask-about-save nil)
+            (compilation-save-buffers-predicate (lambda () nil)))
+        (save-window-excursion
+          (compile (concat prog " " (string-join args " "))))
+        (setq poetry-process
+              (get-buffer-process (get-buffer (poetry-buffer-name))))
+        ;; Block until completion if asked
+        (when blocking
+          (while (eq (process-status poetry-process) 'run)
+            (sleep-for .1)))
+        ;; Display the buffer if asked
+        (if output
+            (with-current-buffer (poetry-buffer-name)
+              (let ((new-name (poetry-buffer-name "output")))
+                (when (get-buffer new-name) (kill-buffer new-name))
+                (poetry-display-buffer (rename-buffer new-name))
+                new-name))
+          (poetry-buffer-name))))))
+
+(defun poetry--busy-p ()
+  "Return nil if the compilation process is busy."
+  (and (get-buffer (poetry-buffer-name))
+       (get-buffer-process (get-buffer (poetry-buffer-name)))
+       (let ((comp-proc (get-buffer-process (get-buffer
+                                             (poetry-buffer-name)))))
+         (eq (process-status comp-proc) 'run))))
+
+(defun poetry--indicate-compilation-end (compil-buf _msg)
+  "Display a message in the minibuffer when the compilation is done."
+  (message "Poetry finished"))
+
+(defun poetry--clean-compilation-buffer (compil-buf _msg)
+  "Clean the compilation buffer from compilation messages."
+  (when (string-match (poetry-buffer-name) (buffer-name compil-buf))
+    (let ((beg (save-excursion (goto-char (point-min))
+                               (forward-line 4)
+                               (point)))
+          (end (save-excursion (goto-char (point-max))
+                               (forward-line -1)
+                               (point))))
+      (kill-region end (point-max))
+      (kill-region (point-min) beg))))
+
+(defun poetry--run-next-call-from-queue (compil-buf _msg)
+  "Run the next call from the call queue (if there is one)."
+  (when (string-match (poetry-buffer-name) (buffer-name compil-buf))
+    ;; Check if call went fine
+    (unless (= (process-exit-status poetry-process) 0)
+      (with-current-buffer (poetry-buffer-name)
+        (let ((new-name (poetry-buffer-name "error")))
+          (when (get-buffer new-name)
+            (kill-buffer new-name))
+          (rename-buffer new-name)
+          (poetry-display-buffer new-name)
+          (poetry-message "Error while running a poetry command."))))
+    ;; Run the next queued call if necessary
+    (when (/= (length poetry-call-queue) 0)
+      (let ((call-args (car poetry-call-queue)))
+        (setq poetry-call-queue (cdr poetry-call-queue))
+        (apply #'poetry-do-call call-args)))))
+
+(add-to-list 'compilation-finish-functions #'poetry--run-next-call-from-queue)
+(add-to-list 'compilation-finish-functions #'poetry--clean-compilation-buffer)
+(add-to-list 'compilation-finish-functions #'poetry--indicate-compilation-end)
+
+
 ;; Helpers
 ;;;;;;;;;;
 
-(defun poetry-call (command &optional output args)
-  "Call poetry COMMAND with the given ARGS.
+(defun poetry-buffer-name (&optional suffix)
+  "Return the poetry buffer name, using SUFFIX is specified."
+  (if suffix
+      (format "*poetry-%s*" suffix)
+    "*poetry*"))
 
-if OUTPUT is non-nil, display the poetry buffer when finished."
-  (unless (member command '(new update))
-    (poetry-ensure-in-project))
-  (let* ((prog (or (executable-find "poetry")
-                   (poetry-error "Could not find 'poetry' executable")))
-         (args (if (or (string= command "run")
-                       (string= command "init"))
-                   (cl-concatenate 'list (list (symbol-name command))
-                                args)
-                 (cl-concatenate 'list (list "-n" "--ansi"
-                                          (symbol-name command))
-                              args)))
-         (poetry-buffer "*poetry*")
-         error-code)
-    (let ((poetry-buf (get-buffer-create poetry-buffer)))
-      (with-current-buffer poetry-buf
-        (delete-region (point-min) (point-max)))
-      (setq error-code (apply #'call-process
-                              (cl-concatenate 'list (list prog nil
-                                                       (list poetry-buf t)
-                                                       t)
-                                           args)))
-      (with-current-buffer poetry-buf
-        (xterm-color-colorize-buffer)
-        (goto-char (point-min))
-        (while (re-search-forward "" nil t)
-          (replace-match "\n" nil nil))
-        (goto-char (point-min))
-        (while (re-search-forward "" nil t)
-          (replace-match "" nil nil))))
-
-    (unless (= error-code 0)
-      (poetry-display-buffer)
-      (poetry-error "Error while running a poetry command. Check `*poetry*' buffer for more information"))
-    (when output
-      (poetry-display-buffer))))
-
-(defun poetry-display-buffer ()
-  "Display the poetry buffer."
-  (with-current-buffer "*poetry*"
+(defun poetry-display-buffer (&optional buffer-name)
+  "Display the poetry buffer or the BUFFER-NAME buffer."
+  (with-current-buffer (or buffer-name (poetry-buffer-name))
     (let ((buffer-read-only nil))
-      (display-buffer "*poetry*"))))
+      (display-buffer (or buffer-name (poetry-buffer-name))))))
 
 (defun poetry-get-dependencies (&optional dev opt)
   "Return the list of project dependencies.
@@ -597,13 +691,15 @@ If OPT is non-nil, set an optional dep."
   (unless (poetry-find-project-root)
     (poetry-error "Not in a poetry project")))
 
-(defun poetry-message (mess)
+(defun poetry-message (&rest args)
   "Display the message MESS."
-  (message "[%s] %s" (or (poetry-get-project-name) "Poetry") mess))
+  (message "[%s] %s" (or (poetry-get-project-name) "Poetry")
+           (apply #'format-message args)))
 
-(defun poetry-error (mess)
+(defun poetry-error (&rest args)
   "Display the error MESS."
-  (error "[%s] %s" (or (poetry-get-project-name) "Poetry") mess))
+  (error "[%s] %s" (or (poetry-get-project-name) "Poetry")
+         (apply #'format-message args)))
 
 
 (provide 'poetry)
