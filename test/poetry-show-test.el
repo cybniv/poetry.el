@@ -1,42 +1,53 @@
 ;;; poetry-show-test.el --- Tests for poetry.el
 
 (ert-deftest poetry-show-should-display-packages ()
+  (poetry-test-cleanup)
   (let ((ppath (poetry-test-create-project-folder)))
     (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
+    (poetry-wait-for-calls)
     (should (string-match
              (concat
-              "six[[:space:]]+[0-9.]+ .*"
-              "pytest[[:space:]]+[0-9.]+ .*"
-              "py[[:space:]]+[0-9.]+ .*"
-              "pluggy[[:space:]]+[0-9.]+ .*"
-              "more-itertools[[:space:]]+[0-9.]+ .*"
-              "attrs[[:space:]]+[0-9.]+ .*"
-              "atomicwrites[[:space:]]+[0-9.]+ .*")
+              "six.*"
+              "pytest.*"
+              "py.*"
+              "pluggy.*"
+              "more-itertools.*"
+              "attrs.*"
+              "atomicwrites.*")
              (substring-no-properties
               (apply 'concat (poetry-show-get-packages)))))))
 
 (ert-deftest poetry-show-should-display-package-info ()
+  (poetry-test-cleanup)
   (let ((ppath (poetry-test-create-project-folder)))
     (find-file ppath)
     (poetry-add-dep "six")
     (poetry-show "six")
-    (should (with-current-buffer "*poetry*"
-              (goto-char (point-min))
-              (re-search-forward "^name[[:space:]]*: six$" nil t)
-              (re-search-forward "description[[:space:]]*: Python 2 and 3 compatibility utilities" nil t)))))
+    (poetry-wait-for-calls)
+    (with-current-buffer "*poetry-output*"
+      (goto-char (point-min))
+      (should (re-search-forward "name" nil t))
+      (should (re-search-forward "six" nil t))
+      (should (re-search-forward "version" nil t))
+      (should (re-search-forward "description" nil t))
+      (should (re-search-forward "Python 2 and 3 compatibility utilities" nil t)))))
 
 (ert-deftest poetry-show-interactive-should-offer-packages ()
+  (poetry-test-cleanup)
   (let ((ppath (poetry-test-create-project-folder)))
     (find-file ppath)
-    (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
+    (poetry-wait-for-calls)
     (cl-letf (((symbol-function 'completing-read) (lambda (&rest ignore) "attrs      4.4  Classes without ...")))
       (call-interactively 'poetry-show))
-    (should (with-current-buffer "*poetry*"
-              (goto-char (point-min))
-              (re-search-forward "^name[[:space:]]*: attrs$" nil t)
-              (re-search-forward "description[[:space:]]*: Classes Without Boilerplate" nil t)))))
+    (poetry-wait-for-calls)
+    (with-current-buffer "*poetry-output*"
+      (goto-char (point-min))
+      (should (re-search-forward "name" nil t))
+      (should (re-search-forward "attrs" nil t))
+      (should (re-search-forward "description" nil t))
+      (should (re-search-forward "Classes Without Boilerplate" nil t)))))
 
 ;;; poetry-show-test.el ends here

@@ -2,6 +2,7 @@
 
 
 (ert-deftest poetry-virtualenv-should-be-activated-and-deactivated ()
+  (poetry-test-cleanup)
   (cl-letf (((symbol-function 'pyvenv-activate)
              (lambda (dir)
                (setq pyvenv-virtual-env dir)))
@@ -13,6 +14,7 @@
            (ppath2 (poetry-test-create-project-folder)))
       (find-file ppath)
       (poetry-add-dep "atomicwrites")
+      (poetry-wait-for-calls)
       ;; should activate the venv
       (poetry-venv-workon)
       (should (string-match "pypoetry/virtualenvs/poetry" pyvenv-virtual-env))
@@ -33,6 +35,7 @@
                               pyvenv-virtual-env)))))
 
 (ert-deftest poetry-virtualenv-should-error ()
+  (poetry-test-cleanup)
   (cl-letf (((symbol-function 'pyvenv-activate)
              (lambda (dir)
                (setq pyvenv-virtual-env dir)))
@@ -51,6 +54,7 @@
       (should-error (poetry-venv-deactivate)))))
 
 (ert-deftest poetry-should-track-virtualenvs ()
+  (poetry-test-cleanup)
   (cl-letf (((symbol-function 'pyvenv-activate)
              (lambda (dir)
                (setq pyvenv-virtual-env dir)))
@@ -63,8 +67,10 @@
            (not-project-path (make-temp-file "poetry-not-project")))
       (find-file ppath)
       (poetry-add-dep "atomicwrites")
+      (poetry-wait-for-calls)
       (find-file ppath2)
       (poetry-add-dep "attrs")
+      (poetry-wait-for-calls)
       (find-file not-project-path)
       (poetry-tracking-mode 1)
       ;; project 1
@@ -85,6 +91,7 @@
       (poetry-tracking-mode -1))))
 
 (ert-deftest poetry-should-restore-previous-venv-when-leaving ()
+  (poetry-test-cleanup)
   (cl-letf (((symbol-function 'pyvenv-activate)
              (lambda (dir)
                (setq pyvenv-virtual-env dir)))
