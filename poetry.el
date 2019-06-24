@@ -422,7 +422,15 @@ It ensures that your python scripts are always executed in the right environment
   :group 'poetry
   (if poetry-tracking-mode
       (add-hook 'post-command-hook 'poetry-track-virtualenv)
-    (remove-hook 'post-command-hook 'poetry-track-virtualenv)))
+    (remove-hook 'post-command-hook 'poetry-track-virtualenv)
+    ;; deactivate the current poetry virtualenv
+    (when (and pyvenv-virtual-env
+               (member (file-name-as-directory pyvenv-virtual-env)
+                       poetry-venv-list))
+      (if (not poetry-saved-venv)
+          (pyvenv-deactivate)
+        (pyvenv-activate poetry-saved-venv)
+        (setq poetry-saved-venv nil)))))
 
 (defvar poetry-saved-venv nil
   "Virtualenv activated before poetry.el changed it.
