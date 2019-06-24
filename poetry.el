@@ -475,16 +475,17 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
   "Poetry call queue.
 
 Each element of the list is an operation to perform.
-Operation are executed sequentially until the list is empty.")
+Operations are executed sequentially until the list is empty.")
 
 (defvar poetry-process nil
-  "Poetry compilation process.")
+  "Poetry current compilation process.")
 
 (defun poetry-call (command &optional args project output blocking)
   "Call poetry COMMAND with the given ARGS.
 
+PROJECT is the poetry project you want the command to be run for
+\(default to the current project).
 If OUTPUT is non-nil, display the compilation buffer.
-PROJECT is the poetry project you want the command to run (default to current project).
 If BLOCKING is non-nil, wait until the compilation is over and return the
 compilation buffer name."
   ;; Wait for the queue to finish when making a blocking call
@@ -494,10 +495,10 @@ compilation buffer name."
       (sleep-for .1)))
   ;; Add the call to the queue if already busy
   (if (poetry--busy-p)
-      (add-to-list 'poetry-call-queue (list command args
-                                            (or project
-                                                (poetry-find-project-root))
-                                            output blocking)
+      (add-to-list 'poetry-call-queue
+                   (list command args (or project
+                                          (poetry-find-project-root))
+                         output blocking)
                    t)
     ;; Else, run the call
     (poetry-do-call command args project output blocking)))
@@ -507,8 +508,9 @@ compilation buffer name."
 
 Not queue-safe version of `poetry-call'.
 
+PROJECT is the poetry project you want the command to be run for
+\(default to the current project).
 If OUTPUT is non-nil, display the compilation buffer.
-PROJECT is the poetry project you want the command to run (default to current project).
 If BLOCKING is non-nil, wait until the compilation is over and return the
 compilation buffer name."
   (let ((default-directory (or project
@@ -526,7 +528,7 @@ compilation buffer name."
                                                (symbol-name command))
                                    args))))
       (let ((compilation-buffer-name-function
-             (lambda (mode) (poetry-buffer-name)))
+             (lambda (_mode) (poetry-buffer-name)))
             (compilation-ask-about-save nil)
             (compilation-save-buffers-predicate (lambda () nil)))
         (save-window-excursion
@@ -547,19 +549,19 @@ compilation buffer name."
           (poetry-buffer-name))))))
 
 (defun poetry--busy-p ()
-  "Return nil if the compilation process is busy."
-  (and (get-buffer (poetry-buffer-name))
-       (get-buffer-process (get-buffer (poetry-buffer-name)))
-       (let ((comp-proc (get-buffer-process (get-buffer
-                                             (poetry-buffer-name)))))
-         (eq (process-status comp-proc) 'run))))
+  "Return t if the compilation process is busy."
+  (let ((buff (get-buffer (poetry-buffer-name))))
+    (when buff
+      (let ((proc (get-buffer-process buff)))
+        (when proc
+         (eq (process-status proc) 'run))))))
 
-(defun poetry--indicate-compilation-end (compil-buf _msg)
+(defun poetry--indicate-compilation-end (_compil-buf _msg)
   "Display a message in the minibuffer when the compilation is done."
   (message "Poetry finished"))
 
 (defun poetry--clean-compilation-buffer (compil-buf _msg)
-  "Clean the compilation buffer from compilation messages."
+  "Clean the compilation buffer COMPIL-BUF from compilation messages."
   (when (string-match (poetry-buffer-name) (buffer-name compil-buf))
     (let ((beg (save-excursion (goto-char (point-min))
                                (forward-line 4)
@@ -567,18 +569,19 @@ compilation buffer name."
           (end (save-excursion (goto-char (point-max))
                                (forward-line -1)
                                (point))))
-      (kill-region end (point-max))
-      (kill-region (point-min) beg))))
+      (delete-region end (point-max))
+      (delete-region (point-min) beg))))
 
 (defun poetry--run-next-call-from-queue (compil-buf _msg)
-  "Run the next call from the call queue (if there is one)."
+  "Run the next call from the call queue (if there is one).
+
+COMPIL-BUF is the current compilation buffer."
   (when (string-match (poetry-buffer-name) (buffer-name compil-buf))
     ;; Check if call went fine
     (unless (= (process-exit-status poetry-process) 0)
       (with-current-buffer (poetry-buffer-name)
         (let ((new-name (poetry-buffer-name "error")))
-          (when (get-buffer new-name)
-            (kill-buffer new-name))
+          (when (get-buffer new-name) (kill-buffer new-name))
           (rename-buffer new-name)
           (poetry-display-buffer new-name)
           (poetry-message "Error while running a poetry command."))))
@@ -691,15 +694,15 @@ If OPT is non-nil, set an optional dep."
   (unless (poetry-find-project-root)
     (poetry-error "Not in a poetry project")))
 
-(defun poetry-message (&rest args)
-  "Display the message MESS."
+(defun poetry-message (format-string &rest args)
+  "Display the message FORMAT-STRING formatted with ARGS."
   (message "[%s] %s" (or (poetry-get-project-name) "Poetry")
-           (apply #'format-message args)))
+           (apply #'format-message format-string args)))
 
-(defun poetry-error (&rest args)
-  "Display the error MESS."
+(defun poetry-error (format-string &rest args)
+  "Display the error FORMAT-STRING formatted with ARGS."
   (error "[%s] %s" (or (poetry-get-project-name) "Poetry")
-         (apply #'format-message args)))
+         (apply #'format-message format-string args)))
 
 
 (provide 'poetry)
