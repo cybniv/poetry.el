@@ -171,22 +171,28 @@ ARGS are additionnal arguments passed to ``poetry add''."
 
 ;;;###autoload
 (defun poetry-add-dep (package)
-  "Add PACKAGE as a new dependency to the project."
-  (interactive "sPackage name: ")
+  "Add PACKAGE as a new dependency to the project.
+
+PACKAGE can be a list of packages, separated by spaces."
+  (interactive "sPackage name(s): ")
   (poetry-message (format "Adding dependency: %s" package))
   (poetry-call-add package '()))
 
 ;;;###autoload
 (defun poetry-add-dev-dep (package)
-  "Add PACKAGE as a new development dependency to the project."
-  (interactive "sPackage name: ")
+  "Add PACKAGE as a new development dependency to the project.
+
+PACKAGE can be a list of packages, separated by spaces."
+  (interactive "sPackage name(s): ")
   (poetry-message (format "Adding dev dependency: %s" package))
   (poetry-call-add package '("-D")))
 
 ;;;###autoload
 (defun poetry-add-opt-dep (package)
-  "Add PACKAGE as a new optional dependency to the project."
-  (interactive "sPackage name: ")
+  "Add PACKAGE as a new optional dependency to the project.
+
+PACKAGE can be a list of packages, separated by spaces."
+  (interactive "sPackage name(s): ")
   (poetry-message (format "Adding optional dependency: %s" package))
   (poetry-call-add package '("--optional")))
 
