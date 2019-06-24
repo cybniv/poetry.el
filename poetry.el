@@ -328,7 +328,8 @@ credential to use."
                                  "-"
                                  "_"
                                  (downcase project-name))))
-                        "__init__.py"))
+                       "__init__.py"))
+    (save-buffer)
     ;; make sure the virtualenv is created
     (poetry-call 'run nil (split-string "python -V" "[[:space:]]+" t))))
 
@@ -571,7 +572,7 @@ If OPT is non-nil, set an optional dep."
       (setq poetry-project-venv
             (or
              (let ((poetry-project-name (poetry-get-project-name)))
-              (car (directory-files
+               (car (directory-files
                      poetry-virtuelenv-path
                      t
                      (format "%s-py" (downcase poetry-project-name)))))
