@@ -22,28 +22,21 @@ matrix:
         dist: xenial
         python: 3.7
         env: EVM_EMACS=emacs-25.3-travis
-      # emacs 26.1 doesn't seem to start on xenial
-      # - sudo: required
-      #   dist: xenial
-      #   python: 3.7
-      #   env: EVM_EMACS=emacs-26.1-travis
 
 env:
   - EVM_EMACS=emacs-25.1-travis
   - EVM_EMACS=emacs-25.2-travis
   - EVM_EMACS=emacs-25.3-travis
-  - EVM_EMACS=emacs-26.1-travis
+  # Cask seems to struggle with emacs 26 at the moment...
+  # - EVM_EMACS=emacs-26.1-travis
   # - EVM_EMACS=emacs-26.2-travis
 before_install:
   - source ./travis-evm-cask.sh
   - evm install $EVM_EMACS --use --skip
-  - cask --verbose        # verbose only needed because of cask bug
+  # verbose only needed because of cask bug
+  - cask --verbose
 install:
   - pip install poetry
   - pip install coveralls
 script:
-  # - nosetests
   - PYTHONPATH="`pwd`" cask exec ert-runner
-after_success:
-  # - coverage run -m nose.__main__
-  # - coveralls

@@ -2,8 +2,10 @@
 
 
 (ert-deftest poetry-new-should-create-a-new-project ()
+  (poetry-test-cleanup)
   (let ((ppath (poetry-test-create-empty-folder)))
     (poetry-new ppath)
+    (poetry-wait-for-calls)
   (let ((pyproj-path (concat (file-name-as-directory ppath)
                                   "pyproject.toml"))
         (readme-path (concat (file-name-as-directory ppath)
@@ -15,9 +17,11 @@
     (should (file-exists-p tests-path)))))
 
 (ert-deftest poetry-new-should-create-new-directories ()
+  (poetry-test-cleanup)
   (let ((ppath (concat (poetry-test-create-empty-folder)
                        "/myproject")))
     (poetry-new ppath)
+    (poetry-wait-for-calls)
   (let ((pyproj-path (concat (file-name-as-directory ppath)
                                   "pyproject.toml"))
         (readme-path (concat (file-name-as-directory ppath)
