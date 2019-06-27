@@ -7,6 +7,8 @@ python:
   - 3.5
   - 3.6
 
+dist: trusty
+
 # While python3.7 is not supported by default dist...
 matrix:
     include:
@@ -27,9 +29,8 @@ env:
   - EVM_EMACS=emacs-25.1-travis
   - EVM_EMACS=emacs-25.2-travis
   - EVM_EMACS=emacs-25.3-travis
-  # Cask seems to struggle with emacs 26 at the moment...
-  # - EVM_EMACS=emacs-26.1-travis
-  # - EVM_EMACS=emacs-26.2-travis
+  - EVM_EMACS=emacs-26.1-travis
+  - EVM_EMACS=emacs-26.2-travis
 before_install:
   - source ./travis-evm-cask.sh
   - evm install $EVM_EMACS --use --skip
