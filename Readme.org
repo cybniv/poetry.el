@@ -12,7 +12,7 @@
 
    1. Install dependencies
 
-      Poetry.el needs ~transient~, ~xterm-color~ and ~pyvenv~ to be installed.
+      Poetry.el needs ~transient~ and ~pyvenv~ to be installed.
       All those packages are available on MELPA.
 
    2. Clone the ~poetry.el~ repository:
@@ -47,4 +47,3 @@ You can activate this feature with
 #+BEGIN_SRC elisp
 M-x poetry-tracking-mode
 #+END_SRC
-
