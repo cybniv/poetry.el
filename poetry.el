@@ -352,7 +352,12 @@ credential to use."
                        "__init__.py"))
     (save-buffer)
     ;; make sure the virtualenv is created
-    (poetry-call 'run (split-string "python -V" "[[:space:]]+" t))))
+    (poetry-message "Creating the virtual environment...")
+    (poetry-call 'run (split-string "python -V" "[[:space:]]+" t) nil nil t)
+    (poetry-message "Done")
+    ;; If tracking virtualenv, update the virtualenv
+    (when poetry-tracking-mode
+      (poetry-track-virtualenv))))
 
 ;;;###autoload
 (defun poetry-run (command)
@@ -476,9 +481,11 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
 
 (defun poetry-track-virtualenv ()
   "Automatically activate virtualenvs when visiting a poetry project."
+  ;; Avoid massive slow down in Helm
+  (when (not (string= (buffer-name) " *Minibuf-1*"))
   (cond
    ;; If in a poetry project, activate the associated virtualenv
-   ((poetry-find-project-root)
+   ((and buffer-file-name (poetry-find-project-root) (poetry-get-virtualenv))
     (let ((poetry-venv (poetry-get-virtualenv)))
       (when (and poetry-venv
                  (not (equal (file-name-as-directory poetry-venv)
@@ -496,8 +503,7 @@ Allow to re-enable the previous virtualenv when leaving the poetry project.")
     (if (not poetry-saved-venv)
         (pyvenv-deactivate)
       (pyvenv-activate poetry-saved-venv)
-      (setq poetry-saved-venv nil)))))
-
+      (setq poetry-saved-venv nil))))))
 
 ;; Asynchroneous call to poetry
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
