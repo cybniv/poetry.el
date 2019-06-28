@@ -5,45 +5,52 @@
 
 * Poetry.el
 
- [[https://poetry.eustace.io/][Poetry]] (python packaging and dependency management) in Emacs.
+  [[https://poetry.eustace.io/][Poetry]] in Emacs.
 
+  From Poetry documentation:
+  "Poetry is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you."
+
+  ~Poetry.el~ is a wrapper around Poetry, offering a simple an intuitive interface in Emacs.
 
 ** Installation
 
-   1. Install dependencies
+   1. Dependencies
 
       Poetry.el needs ~transient~ and ~pyvenv~ to be installed.
-      All those packages are available on MELPA.
+      These packages are both available on MELPA.
 
    2. Clone the ~poetry.el~ repository:
 
       #+BEGIN_SRC bash
-      $ git clone https://github.com/galaunay/poetry.el /path/to/poetry.el/directory
+      $ git clone https://github.com/galaunay/poetry.el /path/to/poetry.el
       #+END_SRC
 
    3. Add the following lines to ~.emacs.el~ (or equivalent):
 
       #+BEGIN_SRC elisp
-      (add-to-list 'load-path "/path/to/poetry.el/directory")
+      (add-to-list 'load-path "/path/to/poetry.el")
       (require 'poetry)
       #+END_SRC
 
 
 ** Usage
 
-Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
-The entry point is simply:
-#+BEGIN_SRC elisp
+   Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
+   The entry point is simply:
+   #+BEGIN_SRC elisp
 M-x poetry
-#+END_SRC
-The interface should then be pretty much self-explanatory for poetry users:
+   #+END_SRC
+   The interface should then be pretty much self-explanatory for poetry users:
 
-#+attr_html: :width 400px
-[[doc/screenshot1.png]]
+   #+attr_html: :width 400px
+   [[doc/screenshot1.png]]
+
+   For users not familiar with how ~Poetry~ works, the [[https://poetry.eustace.io/docs/][documentation]] is a great place to start.
+
 
 *** Tracking Poetry virtualenv
-~Poetry.el~ also provides a global minor mode that automatically activates the associated virtualenv when visiting a poetry project.
-You can activate this feature with
-#+BEGIN_SRC elisp
+    ~Poetry.el~ also provides a global minor mode that automatically activate the correct virtualenv when visiting Poetry project files.
+    You can activate this feature with:
+    #+BEGIN_SRC elisp
 M-x poetry-tracking-mode
-#+END_SRC
+    #+END_SRC
