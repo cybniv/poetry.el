@@ -37,6 +37,11 @@
             (kill-buffer buff)))))
 
 (defun poetry-test-cleanup ()
+  (setq poetry-project-venv nil
+        poetry-project-name nil
+        poetry-project-root nil)
+  (poetry-tracking-mode -1)
+  (pyvenv-deactivate)
   (poetry-kill-all-buffers))
 
 ;;; test-helper.el ends here

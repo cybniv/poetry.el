@@ -52,7 +52,7 @@
   :prefix "poetry-"
   :group 'tools)
 
-(defcustom poetry-virtuelenv-path
+(defcustom poetry-virtualenv-path
   (cond
    ((or (eq system-type 'ms-dos)
         (eq system-type 'windows-nt))
@@ -92,32 +92,51 @@
 ;;;###autoload
 (define-transient-command poetry ()
   "Poetry menu."
-  [:description (lambda () (format "Project: %s\n" (poetry-get-project-name)))
+  [:description (lambda ()
+                  (let ((project-name (poetry-get-project-name)))
+                    (if project-name
+                        (format "Project: %s\n" project-name)
+                      "Poetry\n")))
   [:if poetry-find-project-root
-       :description "Dependencies"
+       :description "Dependencies    "
        ("a" "Add" poetry-add)
        ("r" "Remove" poetry-remove)
        ("i" "Install" poetry-install)
        ("l" "Lock" poetry-lock)
        ("u" "Update" poetry-update)
-       ("s" "Show" poetry-show)]]
+       ("s" "Show" poetry-show)]
   [:if poetry-find-project-root
-       :description "Virtualenv"
-       ("v" "Toggle virtualenv" poetry-venv-toggle)]
-  [["New project"
-    ;; ("I" "Init" poetry-init)
-    ("n" "New" poetry-new)]
-   [:if poetry-find-project-root
     :description "Project"
+        ("n" "New" poetry-new)
         ("c" "Check" poetry-check)
         ("b" "Build" poetry-build)
-        ("p" "Publish" poetry-publish)]]
+        ("p" "Publish" poetry-publish)]
+  [:if-not poetry-find-project-root
+    :description "Project"
+    ;; ("I" "Init" poetry-init)
+    ("n" "New" poetry-new)]
+  ]
   [[:if poetry-find-project-root
         :description "Shell"
         ("R" "Run a command" poetry-run)
         ("S" "Start a shell" poetry-shell)]
-   ["Poetry"
-    ("U" "Update" poetry-self-update)]])
+  [:if (lambda () (and (poetry-find-project-root)
+                       (condition-case nil
+                           (poetry-get-virtualenv)
+                         (error nil))
+                       (poetry-venv-activated-p)))
+       :description "Virtualenv"
+       ("v" "Deactivate" poetry-venv-deactivate)]
+  [:if (lambda () (and (poetry-find-project-root)
+                       (condition-case nil
+                           (poetry-get-virtualenv)
+                         (error nil))
+                       (not (poetry-venv-activated-p))))
+       :description "Virtualenv"
+       ("v" "Activate" poetry-venv-workon)]
+  ])
+   ;; ["Poetry"
+   ;;  ("U" "Update" poetry-self-update)]])
 
 ;; Poetry add
 (define-transient-command poetry-add ()
@@ -382,6 +401,8 @@ credential to use."
 (defun poetry-venv-workon ()
   "Activate the virtualenv associated to the current poetry project."
   (interactive)
+  (when poetry-tracking-mode
+    (poetry-error "Poetry tracking mode is activated. You should deactivate it before manually setting virtualenvs."))
   (poetry-ensure-in-project)
   (pyvenv-activate (poetry-get-virtualenv)))
 
@@ -389,6 +410,8 @@ credential to use."
 (defun poetry-venv-deactivate ()
   "De-activate the virtualenv associated to the current poetry project."
   (interactive)
+  (when poetry-tracking-mode
+    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode. Deactivate the tracking mode to deactivate this virtualenv."))
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
         (poetry-error "No virtualenv activated")
@@ -401,13 +424,21 @@ credential to use."
 (defun poetry-venv-toggle ()
   "Toggle the virtualenv associated to the current poetry project."
   (interactive)
+  (if (poetry-venv-activated-p)
+      (poetry-venv-deactivate)
+    (poetry-venv-workon)))
+
+(defun poetry-venv-exist-p ()
+  "Return t if the current project has a venv."
+  (poetry-get-virtualenv))
+
+(defun poetry-venv-activated-p ()
+  "Return t if the current project venv is activated."
   (let ((venv (poetry-get-virtualenv)))
-    (if (not pyvenv-virtual-env)
-        (poetry-venv-workon)
-      (if (equal (file-name-as-directory venv)
-                 (file-name-as-directory pyvenv-virtual-env))
-          (poetry-venv-deactivate)
-        (poetry-venv-workon)))))
+    (and venv
+         pyvenv-virtual-env
+         (equal (file-name-as-directory venv)
+                (file-name-as-directory pyvenv-virtual-env)))))
 
 
 ;; Virtualenv tracking
@@ -671,17 +702,19 @@ If OPT is non-nil, set an optional dep."
             (locate-dominating-file default-directory "pyproject.toml"))))
 
 (defun poetry-get-virtualenv ()
-  "Return the current poetry project virtualenv."
+  "Return the current poetry project virtualenv, or nil if it does not exist."
   (poetry-ensure-in-project)
-  (or poetry-project-venv
+  (if (and poetry-project-venv
+           (file-exists-p poetry-project-venv))
+      poetry-project-venv
       (setq poetry-project-venv
             (or
              (let ((poetry-project-name (poetry-get-project-name)))
                (car (directory-files
-                     poetry-virtuelenv-path
+                     poetry-virtualenv-path
                      t
                      (format "%s-py" (downcase poetry-project-name)))))
-             (poetry-error "No virtualenv associated to this project")))))
+             nil))))
 
 (defun poetry-find-pyproject-file ()
   "Return the location of the 'pyproject.toml' file."
