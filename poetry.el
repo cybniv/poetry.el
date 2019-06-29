@@ -338,6 +338,17 @@ credential to use."
   (poetry-call 'publish
                (list "-r" repo "-u" username "-p" password)))
 
+(defun poetry-publish-get-repositories ()
+  "Return the list of configured repostitories."
+  (let ((bufname (poetry-call 'config '("repositories") nil nil t)))
+    (with-current-buffer bufname
+      (goto-char (point-min))
+      (let* ((json-key-type 'string)
+             (data (buffer-substring-no-properties
+                    (point-min) (point-max)))
+        (repos (json-read-from-string (replace-regexp-in-string "'" "\"" data))))
+      (map 'list #'car repos)))))
+
 ;;;###autoload
 (defun poetry-new (path)
   "Create a new Python project at PATH."
