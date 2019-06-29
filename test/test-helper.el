@@ -20,7 +20,7 @@
     (poetry-wait-for-calls)
     (find-file "dummy-file.py")
     (save-buffer)
-    path))
+    (expand-file-name "dummy-file.py")))
 
 (defun poetry-wait-for-calls ()
   "Wait until all the current calls are done."

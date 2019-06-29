@@ -113,8 +113,8 @@
         ("p" "Publish" poetry-publish)]
   [:if-not poetry-find-project-root
     :description "Project"
-    ;; ("I" "Init" poetry-init)
-    ("n" "New" poetry-new)]
+    ("n" "New" poetry-new)
+    ("I" "Init" poetry-init)]
   ]
   [[:if poetry-find-project-root
         :description "Shell"
@@ -360,6 +360,20 @@ credential to use."
       (poetry-track-virtualenv))))
 
 ;;;###autoload
+(defun poetry-init (&optional path)
+  "Initialize a Poetry project in PATH."
+  (interactive "GInitialize a project at: ")
+  (let* ((path (expand-file-name (or path default-directory)))
+         (project-name (file-name-base path))
+         (default-directory path))
+    (when (poetry-find-project-root)
+      (poetry-error "'%s' is already a Poetry project" path))
+    (shell (poetry-buffer-name "init"))
+    (process-send-string (get-buffer-process
+                          (get-buffer (poetry-buffer-name "init")))
+                         "poetry init; exit\n")))
+
+;;;###autoload
 (defun poetry-run (command)
   "Run COMMAND in the appropriate environment."
   (interactive (list (completing-read "Command: "
@@ -553,7 +567,7 @@ compilation buffer name."
   (let ((default-directory (or project
                                (poetry-find-project-root)
                                default-directory)))
-    (unless (member command '(new update))
+    (unless (member command '(new init))
       (poetry-ensure-in-project))
     (let* ((prog (or (executable-find "poetry")
                      (poetry-error "Could not find 'poetry' executable")))
