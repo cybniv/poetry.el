@@ -13,6 +13,6 @@
               (goto-char (point-min))
               (re-search-forward "- Installing" nil t)))
     ;; should also create a lock
-    (should (file-exists-p "poetry.lock"))))
+    (should (file-exists-p (concat (file-name-as-directory (poetry-find-project-root)) "poetry.lock")))))
 
 ;;; poetry-install-test.el ends here

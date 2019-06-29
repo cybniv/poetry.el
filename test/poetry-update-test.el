@@ -8,6 +8,6 @@
     (poetry-add-dep "attrs")
     (poetry-update)
     (poetry-wait-for-calls)
-    (should (file-exists-p "poetry.lock"))))
+    (should (file-exists-p (concat (file-name-as-directory (poetry-find-project-root)) "poetry.lock")))))
 
 ;;; poetry-update-test.el ends here

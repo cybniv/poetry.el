@@ -35,6 +35,12 @@
 ;; You can activate this feature with `poetry-tracking-mode'.
 
 
+;;; Todos:
+
+;;  - Add missing Poety commands ?
+;;  - Get 'publish' candidates from Poetry config
+;;  - Make a 'getting started' section in the readme
+
 ;;; Code:
 
 (require 'cl-lib)
@@ -108,6 +114,7 @@
   [:if poetry-find-project-root
     :description "Project"
         ("n" "New" poetry-new)
+        ("e" "Edit 'pyproject.toml'" poetry-edit-pyproject-toml)
         ("c" "Check" poetry-check)
         ("b" "Build" poetry-build)
         ("p" "Publish" poetry-publish)]
@@ -372,6 +379,13 @@ credential to use."
     (process-send-string (get-buffer-process
                           (get-buffer (poetry-buffer-name "init")))
                          "poetry init; exit\n")))
+
+;;;###autoload
+(defun poetry-edit-pyproject-toml ()
+  "Open the current project 'pyproject.toml' file for edition."
+  (interactive)
+  (poetry-ensure-in-project)
+  (find-file (poetry-find-pyproject-file)))
 
 ;;;###autoload
 (defun poetry-run (command)
