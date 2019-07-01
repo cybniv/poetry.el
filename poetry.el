@@ -352,7 +352,7 @@ credential to use."
 (defun poetry-publish-get-repositories ()
   "Return the list of configured repostitories."
   (let ((repos (poetry-get-configuration "repositories")))
-    (map 'list #'car repos)))
+    (mapcar #'car repos)))
 
 ;;;###autoload
 (defun poetry-new (path)
@@ -696,9 +696,12 @@ COMPIL-BUF is the current compilation buffer."
       (goto-char (point-min))
       (let* ((json-key-type 'string)
              (data (buffer-substring-no-properties
-                    (point-min) (point-max))))
-        (json-read-from-string (replace-regexp-in-string
-                                "'" "\"" data))))))
+                    (point-min) (point-max)))
+             (config (json-read-from-string (replace-regexp-in-string
+                                "'" "\"" data))))
+        (if (string= config ":json-false")
+            nil
+          config)))))
 
 (defun poetry-buffer-name (&optional suffix)
   "Return the poetry buffer name, using SUFFIX is specified."
