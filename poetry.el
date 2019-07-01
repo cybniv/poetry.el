@@ -371,7 +371,6 @@ credential to use."
   "Initialize a Poetry project in PATH."
   (interactive "GInitialize a project at: ")
   (let* ((path (expand-file-name (or path default-directory)))
-         (project-name (file-name-base path))
          (default-directory path))
     (when (poetry-find-project-root)
       (poetry-error "'%s' is already a Poetry project" path))
@@ -435,7 +434,7 @@ credential to use."
   "Activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "Poetry tracking mode is activated. You should deactivate it before manually setting virtualenvs."))
+    (poetry-error "Poetry tracking mode is activated. You should deactivate it before manually setting virtualenvs"))
   (poetry-ensure-in-project)
   (pyvenv-activate (poetry-get-virtualenv)))
 
@@ -444,7 +443,7 @@ credential to use."
   "De-activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode. Deactivate the tracking mode to deactivate this virtualenv."))
+    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode. Deactivate the tracking mode to deactivate this virtualenv"))
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
         (poetry-error "No virtualenv activated")
@@ -477,6 +476,15 @@ credential to use."
 ;; Virtualenv tracking
 ;;;;;;;;;;;;;;;;;;;;;;
 
+(defvar poetry-venv-list '()
+  "List of known poetry virtualenvs.")
+
+(defvar poetry-saved-venv nil
+  "Virtualenv activated before poetry.el changed it.
+
+Allow to re-enable the previous virtualenv when leaving the poetry project.")
+
+
 ;;;###autoload
 (define-minor-mode poetry-tracking-mode
   "Global minor mode to track the current poetry virtualenv.
@@ -498,14 +506,6 @@ It ensures that your python scripts are always executed in the right environment
           (pyvenv-deactivate)
         (pyvenv-activate poetry-saved-venv)
         (setq poetry-saved-venv nil)))))
-
-(defvar poetry-saved-venv nil
-  "Virtualenv activated before poetry.el changed it.
-
-Allow to re-enable the previous virtualenv when leaving the poetry project.")
-
-(defvar poetry-venv-list '()
-  "List of known poetry virtualenvs.")
 
 (defun poetry-track-virtualenv ()
   "Automatically activate virtualenvs when visiting a poetry project."
