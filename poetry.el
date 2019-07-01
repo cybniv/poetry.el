@@ -59,20 +59,21 @@
   :group 'tools)
 
 (defcustom poetry-virtualenv-path
-  (cond
-   ((or (eq system-type 'ms-dos)
-        (eq system-type 'windows-nt))
-    (expand-file-name "%APPDATA%/Local/pypoetry/Cache/virtualenvs"))
-   ((eq system-type 'darwin)
-    (expand-file-name "~/Library/Caches/pypoetry/virtualenvs"))
-   (t
-    (expand-file-name "~/.cache/pypoetry/virtualenvs")))
+  (poetry-get-configuration "settings.virtualenvs.path")
   "Path to poetry virtualenvs directory."
   :type 'string)
+
+(make-obsolete-variable 'poetry-virtualenv-path
+                        "Poetry.el now reads the virtualenvs path from Poetry settings. Please use `poetry config` to change the virtualenvs path."
+                        nil "0.2.0")
 
 (defcustom poetry-repository-list '("pypi")
   "List of repository name to register package to."
   :type '(repeat string))
+
+(make-obsolete-variable 'poetry-repository-list
+                        "Poetry.el now reads the repository list from Poetry settings. Please use `poetry config` to change the list of available repositories."
+                        nil "0.2.0")
 
 
 ;; Macros
@@ -332,7 +333,10 @@ REPO is the repository and USERNAME and PASSWORD the
 credential to use."
   (interactive (list
                 (completing-read "Repository: "
-                                 poetry-repository-list)
+                                 (or (poetry-publish-get-repositories)
+                                     (poetry-error "No repository configured. Please use `poetry config` to add repositories.")
+                                     )
+                                 nil t)
                 (read-string "Username: ")
                 (read-passwd "Password: ")))
   (poetry-call 'publish
@@ -340,14 +344,8 @@ credential to use."
 
 (defun poetry-publish-get-repositories ()
   "Return the list of configured repostitories."
-  (let ((bufname (poetry-call 'config '("repositories") nil nil t)))
-    (with-current-buffer bufname
-      (goto-char (point-min))
-      (let* ((json-key-type 'string)
-             (data (buffer-substring-no-properties
-                    (point-min) (point-max)))
-        (repos (json-read-from-string (replace-regexp-in-string "'" "\"" data))))
-      (map 'list #'car repos)))))
+  (let ((repos (poetry-get-configuration "repositories")))
+    (map 'list #'car repos)))
 
 ;;;###autoload
 (defun poetry-new (path)
@@ -592,7 +590,7 @@ compilation buffer name."
   (let ((default-directory (or project
                                (poetry-find-project-root)
                                default-directory)))
-    (unless (member command '(new init))
+    (unless (member command '(new init config))
       (poetry-ensure-in-project))
     (let* ((prog (or (executable-find "poetry")
                      (poetry-error "Could not find 'poetry' executable")))
@@ -655,17 +653,20 @@ COMPIL-BUF is the current compilation buffer."
   (when (string-match (poetry-buffer-name) (buffer-name compil-buf))
     ;; Check if call went fine
     (unless (= (process-exit-status poetry-process) 0)
-      (with-current-buffer (poetry-buffer-name)
-        (let ((new-name (poetry-buffer-name "error")))
-          (when (get-buffer new-name) (kill-buffer new-name))
-          (rename-buffer new-name)
-          (poetry-display-buffer new-name)
-          (poetry-message "Error while running a poetry command."))))
-    ;; Run the next queued call if necessary
-    (when (/= (length poetry-call-queue) 0)
-      (let ((call-args (car poetry-call-queue)))
-        (setq poetry-call-queue (cdr poetry-call-queue))
-        (apply #'poetry-do-call call-args)))))
+      (let ((new-name (poetry-buffer-name "error")))
+        (when (get-buffer new-name) (kill-buffer new-name))
+        (with-current-buffer (poetry-buffer-name)
+          (rename-buffer new-name))
+        ;; Save a copy in the default poetry buffer
+        (with-current-buffer (get-buffer-create (poetry-buffer-name))
+          (insert-buffer-substring new-name))
+        (poetry-display-buffer new-name)
+        (poetry-message "Error while running a poetry command."))))
+  ;; Run the next queued call if necessary
+  (when (/= (length poetry-call-queue) 0)
+    (let ((call-args (car poetry-call-queue)))
+      (setq poetry-call-queue (cdr poetry-call-queue))
+      (apply #'poetry-do-call call-args))))
 
 (add-to-list 'compilation-finish-functions #'poetry--run-next-call-from-queue)
 (add-to-list 'compilation-finish-functions #'poetry--clean-compilation-buffer)
@@ -674,6 +675,23 @@ COMPIL-BUF is the current compilation buffer."
 
 ;; Helpers
 ;;;;;;;;;;
+
+(defun poetry-get-configuration (key)
+  "Return Poetry configuration for KEY.
+
+(type `poetry config --list' to get a list of usable configuration keys.)"
+  (let ((bufname (poetry-call 'config (list key) nil nil t)))
+    (with-current-buffer bufname
+      (when (progn
+              (goto-char (point-min))
+              (re-search-forward "There is no" nil t))
+        (poetry-error "Unrecognized key configuration: %s" key))
+      (goto-char (point-min))
+      (let* ((json-key-type 'string)
+             (data (buffer-substring-no-properties
+                    (point-min) (point-max))))
+        (json-read-from-string (replace-regexp-in-string
+                                "'" "\"" data))))))
 
 (defun poetry-buffer-name (&optional suffix)
   "Return the poetry buffer name, using SUFFIX is specified."
@@ -754,11 +772,15 @@ If OPT is non-nil, set an optional dep."
       poetry-project-venv
       (setq poetry-project-venv
             (or
-             (let ((poetry-project-name (poetry-get-project-name)))
+             ;; virtualenvs in project
+             (if (poetry-get-configuration "settings.virtualenvs.in-project")
+                 (concat (file-name-as-directory (poetry-find-project-root))
+                         ".venv")
+               ;; virtualenvs elsewhere
                (car (directory-files
-                     poetry-virtualenv-path
+                     (poetry-get-configuration "settings.virtualenvs.path")
                      t
-                     (format "%s-py" (downcase poetry-project-name)))))
+                     (format "%s-py" (downcase (poetry-get-project-name))))))
              nil))))
 
 (defun poetry-find-pyproject-file ()
