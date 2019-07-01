@@ -59,7 +59,14 @@
   :group 'tools)
 
 (defcustom poetry-virtualenv-path
-  (poetry-get-configuration "settings.virtualenvs.path")
+  (cond
+   ((or (eq system-type 'ms-dos)
+        (eq system-type 'windows-nt))
+    (expand-file-name "%APPDATA%/Local/pypoetry/Cache/virtualenvs"))
+   ((eq system-type 'darwin)
+    (expand-file-name "~/Library/Caches/pypoetry/virtualenvs"))
+   (t
+    (expand-file-name "~/.cache/pypoetry/virtualenvs")))
   "Path to poetry virtualenvs directory."
   :type 'string)
 
@@ -334,7 +341,7 @@ credential to use."
   (interactive (list
                 (completing-read "Repository: "
                                  (or (poetry-publish-get-repositories)
-                                     (poetry-error "No repository configured. Please use `poetry config` to add repositories.")
+                                     (poetry-error "No repository configured, please use `poetry config` to add repositories")
                                      )
                                  nil t)
                 (read-string "Username: ")
@@ -443,7 +450,7 @@ credential to use."
   "Activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "Poetry tracking mode is activated. You should deactivate it before manually setting virtualenvs"))
+    (poetry-error "Poetry tracking mode is activated, you should deactivate it before manually setting virtualenvs"))
   (poetry-ensure-in-project)
   (pyvenv-activate (poetry-get-virtualenv)))
 
@@ -452,7 +459,7 @@ credential to use."
   "De-activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode. Deactivate the tracking mode to deactivate this virtualenv"))
+    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode, deactivate the tracking mode to deactivate this virtualenv"))
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
         (poetry-error "No virtualenv activated")
@@ -679,7 +686,7 @@ COMPIL-BUF is the current compilation buffer."
 (defun poetry-get-configuration (key)
   "Return Poetry configuration for KEY.
 
-(type `poetry config --list' to get a list of usable configuration keys.)"
+\(type `poetry config --list' to get a list of usable configuration keys.)"
   (let ((bufname (poetry-call 'config (list key) nil nil t)))
     (with-current-buffer bufname
       (when (progn
