@@ -712,7 +712,7 @@ COMPIL-BUF is the current compilation buffer."
 
 (defun poetry-normalize-project-name (project-name)
   "Return a normalized version of the PROJECT-NAME."
-  (replace-regexp-in-string "-" "_" (downcase project-name)))
+  (replace-regexp-in-string "-+" "_" (downcase project-name)))
 
 (defun poetry-display-buffer (&optional buffer-name)
   "Display the poetry buffer or the BUFFER-NAME buffer."
