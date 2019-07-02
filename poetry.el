@@ -368,10 +368,7 @@ credential to use."
     ;; Open __init__.py
     (find-file (concat (file-name-as-directory
                         (concat (file-name-as-directory path)
-                                (replace-regexp-in-string
-                                 "-"
-                                 "_"
-                                 (downcase project-name))))
+                                (poetry-normalize-project-name project-name)))
                        "__init__.py"))
     (save-buffer)
     ;; make sure the virtualenv is created
@@ -709,6 +706,10 @@ COMPIL-BUF is the current compilation buffer."
       (format "*poetry-%s*" suffix)
     "*poetry*"))
 
+(defun poetry-normalize-project-name (project-name)
+  "Return a normalized version of the PROJECT-NAME."
+  (replace-regexp-in-string "-" "_" (downcase project-name)))
+
 (defun poetry-display-buffer (&optional buffer-name)
   "Display the poetry buffer or the BUFFER-NAME buffer."
   (with-current-buffer (or buffer-name (poetry-buffer-name))
@@ -790,7 +791,8 @@ If OPT is non-nil, set an optional dep."
                (car (directory-files
                      (poetry-get-configuration "settings.virtualenvs.path")
                      t
-                     (format "%s-py" (downcase (poetry-get-project-name))))))
+                     (format "%s-py" (poetry-normalize-project-name
+                                      (poetry-get-project-name))))))
              nil))))
 
 (defun poetry-find-pyproject-file ()
