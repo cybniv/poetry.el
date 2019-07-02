@@ -223,5 +223,44 @@
       (should-error (poetry-venv-workon))
       (should-error (poetry-venv-deactivate)))))
 
+(ert-deftest poetry-should-check-for-poetry-config ()
+  (poetry-test-cleanup)
+  (cl-letf (((symbol-function 'poetry-get-configuration)
+             (lambda (key)
+               (cond
+                ((string= key "settings.virtualenvs.in-project")
+                 t)
+                ((string= key "settings.virtualenvs.path")
+                 "/tmp/venv-test")
+                nil))))
+    (let ((ppath (poetry-test-create-project-folder)))
+      (find-file ppath)
+      (poetry-wait-for-calls)
+      (should (string= (poetry-get-virtualenv)
+                       (concat (file-name-as-directory
+                                (poetry-find-project-root))
+                               ".venv"))))))
+
+(ert-deftest poetry-should-check-for-poetry-config-2 ()
+  (poetry-test-cleanup)
+  (cl-letf (((symbol-function 'poetry-get-configuration)
+             (lambda (key)
+               (cond
+                ((string= key "settings.virtualenvs.in-project")
+                 nil)
+                ((string= key "settings.virtualenvs.path")
+                 "/tmp/venv-test")
+                nil))))
+    (let ((ppath (poetry-test-create-project-folder)))
+      (make-directory (format "/tmp/venv-test/%s"
+                              (format "%s-py" (poetry-normalize-project-name
+                                               (poetry-get-project-name))))
+                      t)
+      (find-file ppath)
+      (poetry-wait-for-calls)
+      (should (string-match
+               "/tmp/venv-test"
+               (poetry-get-virtualenv))))))
+
 
 ;;; poetry-virtualenv-test.el ends here

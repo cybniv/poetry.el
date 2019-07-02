@@ -692,7 +692,7 @@ COMPIL-BUF is the current compilation buffer."
     (with-current-buffer bufname
       (when (progn
               (goto-char (point-min))
-              (re-search-forward "There is no" nil t))
+              (re-search-forward "\\[ValueError\\]" nil t))
         (poetry-error "Unrecognized key configuration: %s" key))
       (goto-char (point-min))
       (let* ((json-key-type 'string)

@@ -32,4 +32,32 @@
     (should (file-exists-p readme-path))
     (should (file-exists-p tests-path)))))
 
+;; (ert-deftest poetry-new-should-activate-venv-when-tracking ()
+;;   (poetry-test-cleanup)
+;;   (make-directory (poetry-get-configuration "settings.virtualenvs.path") t)
+;;   (let ((ppath (concat (poetry-test-create-empty-folder)
+;;                        "/myproject")))
+;;     (poetry-tracking-mode 1)
+;;     (poetry-new ppath)
+;;     (poetry-wait-for-calls)
+;;     (should (string-match "virtualenvs" pyvenv-virtual-env))))
+
+(ert-deftest poetry-new-should-activate-venv-when-tracking ()
+  (poetry-test-cleanup)
+  (cl-letf (((symbol-function 'pyvenv-activate)
+             (lambda (dir)
+               (setq pyvenv-virtual-env dir)))
+            ((symbol-function 'directory-files)
+             (lambda (dir &optional full match nosort)
+               (list (concat (file-name-as-directory dir)
+                             (poetry-normalize-project-name
+                              (poetry-get-project-name)))))))
+    (let ((ppath (poetry-test-create-empty-folder)))
+      (poetry-tracking-mode 1)
+      (poetry-new ppath)
+      (poetry-wait-for-calls)
+      ;; should activate the venv
+      (should (string-match "pypoetry/virtualenvs/poetry"
+                            pyvenv-virtual-env)))))
+
 ;;; poetry-new-project-test.el ends here
