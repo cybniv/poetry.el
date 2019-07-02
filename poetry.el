@@ -447,7 +447,7 @@ credential to use."
   "Activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "Poetry tracking mode is activated. You should deactivate it before manually setting virtualenvs"))
+    (poetry-error "Poetry tracking mode is activated, you should deactivate it before manually setting virtualenvs"))
   (poetry-ensure-in-project)
   (pyvenv-activate (poetry-get-virtualenv)))
 
@@ -456,7 +456,7 @@ credential to use."
   "De-activate the virtualenv associated to the current poetry project."
   (interactive)
   (when poetry-tracking-mode
-    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode. Deactivate the tracking mode to deactivate this virtualenv"))
+    (poetry-error "The current virtualenv has been set automatically by poetry tracking mode, deactivate the tracking mode to deactivate this virtualenv"))
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
         (poetry-error "No virtualenv activated")
