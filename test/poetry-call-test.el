@@ -83,6 +83,8 @@
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "atomicwrites")
     (poetry-wait-for-calls)
+    (sleep-for .1)
+    (poetry-wait-for-calls)
     (with-current-buffer "*poetry-error*"
       (goto-char (point-max))
       (let ((inhibit-read-only t))

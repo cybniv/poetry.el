@@ -17,6 +17,8 @@
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "atomicwrites")
     (poetry-wait-for-calls)
+    (sleep-for .1)
+    (poetry-wait-for-calls)
     (poetry-display-buffer "*poetry-error*")
     (other-window 1)
     (should (string= (buffer-name) "*poetry-error*"))))
