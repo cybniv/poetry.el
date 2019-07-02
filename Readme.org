@@ -14,6 +14,17 @@
 
 ** Installation
 
+*** From Melpa
+
+Poetry.el is available on Melpa, the most straightforward way of installing it is to use ~use-package~:
+
+#+BEGIN_SRC elisp
+(use-package poetry
+ :ensure t)
+#+END_SRC
+
+*** Manually
+
    1. Dependencies
 
       Poetry.el needs ~transient~ and ~pyvenv~ to be installed.
