@@ -33,6 +33,10 @@
     (poetry-add-opt-dep "atomicwrites")
     (poetry-add-opt-dep "attrs")
     (poetry-wait-for-calls)
+    (message "pyproject.tom: %s" (with-current-buffer (find-file (poetry-find-pyproject-file))
+                                  (buffer-substring (point-min) (point-max))))
+    (message "opt dep: %s" (poetry-get-dependencies nil t))
+    (message "dep: %s" (poetry-get-dependencies))
     (should (string-match
              "^atomicwrites (.*)attrs (.*)$"
              (apply 'concat (poetry-get-dependencies nil t))))
