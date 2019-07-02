@@ -615,7 +615,11 @@ compilation buffer name."
               (get-buffer-process (get-buffer (poetry-buffer-name))))
         ;; Block until completion if asked
         (when blocking
-          (while (eq (process-status poetry-process) 'run)
+          (while (or (eq (process-status poetry-process) 'run)
+                      ;; Poetry buffer should be cleaned from compilation-mode verbose
+                     (with-current-buffer (poetry-buffer-name)
+                       (goto-char (point-min))
+                       (re-search-forward "mode: compilation;" nil t)))
             (sleep-for .1)))
         ;; Display the buffer if asked
         (if output
