@@ -460,8 +460,7 @@ credential to use."
   (let ((venv (poetry-get-virtualenv)))
     (if (not pyvenv-virtual-env)
         (poetry-error "No virtualenv activated")
-      (if (not (equal (file-name-as-directory venv)
-                      (file-name-as-directory pyvenv-virtual-env)))
+      (if (not (poetry-venv-activated-p))
           (poetry-error "Current poetry virtualenv not activated")
         (pyvenv-deactivate)))))
 
@@ -482,8 +481,9 @@ credential to use."
   (let ((venv (poetry-get-virtualenv)))
     (and venv
          pyvenv-virtual-env
-         (equal (file-name-as-directory venv)
-                (file-name-as-directory pyvenv-virtual-env)))))
+         (equal (file-name-as-directory (expand-file-name venv))
+                (file-name-as-directory (expand-file-name
+                                         pyvenv-virtual-env))))))
 
 
 ;; Virtualenv tracking
