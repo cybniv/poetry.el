@@ -567,9 +567,14 @@ If OUTPUT is non-nil, display the compilation buffer.
 If BLOCKING is non-nil, wait until the compilation is over and return the
 compilation buffer name."
   ;; Wait for the queue to finish when making a blocking call
-  (when (and blocking (poetry--busy-p))
-    (poetry-message "Waiting for previous operations to finish...")
+  (let (call-nmb (old-call-nmb -1))
     (while (and blocking (poetry--busy-p))
+      (setq call-nmb (+ 1 (length poetry-call-queue)))
+      (when (/= call-nmb old-call-nmb)
+        (poetry-message "Waiting for %s operation%s to finish..."
+                        call-nmb
+                        (if (= call-nmb 1) "" "s")))
+      (setq old-call-nmb call-nmb)
       (sleep-for .1)))
   ;; Add the call to the queue if already busy
   (if (poetry--busy-p)
