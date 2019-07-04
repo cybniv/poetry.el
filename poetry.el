@@ -785,19 +785,19 @@ If OPT is non-nil, set an optional dep."
   (if (and poetry-project-venv
            (file-exists-p poetry-project-venv))
       poetry-project-venv
-      (setq poetry-project-venv
-            (or
-             ;; virtualenvs in project
-             (if (poetry-get-configuration "settings.virtualenvs.in-project")
-                 (concat (file-name-as-directory (poetry-find-project-root))
-                         ".venv")
-               ;; virtualenvs elsewhere
-               (car (directory-files
-                     (poetry-get-configuration "settings.virtualenvs.path")
-                     t
-                     (format "%s-py" (poetry-normalize-project-name
-                                      (poetry-get-project-name))))))
-             nil))))
+    (setq poetry-project-venv
+          (or
+           ;; virtualenvs in project
+           (if (poetry-get-configuration "settings.virtualenvs.in-project")
+               (concat (file-name-as-directory (poetry-find-project-root))
+                       ".venv")
+             ;; virtualenvs elsewhere
+             (car (directory-files
+                   (poetry-get-configuration "settings.virtualenvs.path")
+                   t
+                   (format "%s-py"
+                           (poetry-get-project-name)))))
+           nil))))
 
 (defun poetry-find-pyproject-file ()
   "Return the location of the 'pyproject.toml' file."
