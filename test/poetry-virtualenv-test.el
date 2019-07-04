@@ -182,9 +182,7 @@
       (find-file ppath)
       (poetry-add-dep "atomicwrites")
       (poetry-wait-for-calls)
-      (mkdir (format "/tmp/venv-test/%s-py3.7"
-                     (poetry-normalize-project-name (poetry-get-project-name)))
-             t)
+      (mkdir (format "/tmp/venv-test/%s-py3.7" (poetry-get-project-name)) t)
       (should (poetry-venv-exist-p))
       (delete-directory (poetry-get-virtualenv) t)
       (should (not (poetry-venv-exist-p))))))
@@ -253,8 +251,7 @@
                 nil))))
     (let ((ppath (poetry-test-create-project-folder)))
       (make-directory (format "/tmp/venv-test/%s"
-                              (format "%s-py" (poetry-normalize-project-name
-                                               (poetry-get-project-name))))
+                              (format "%s-py" (poetry-get-project-name)))
                       t)
       (find-file ppath)
       (poetry-wait-for-calls)
