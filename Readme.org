@@ -2,6 +2,7 @@
 [[https://travis-ci.org/galaunay/poetry.el][https://travis-ci.org/galaunay/poetry.el.svg?branch=master]]
 [[https://coveralls.io/github/galaunay/poetry.el?branch=master][https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master]]
 [[https://github.com/galaunay/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
+[[https://www.python.org/download][https://img.shields.io/badge/python-3.5+-blue.svg]]
 [[https://melpa.org/#/poetry][file:https://melpa.org/packages/poetry-badge.svg]]
 [[https://stable.melpa.org/#/poetry][file:https://stable.melpa.org/packages/poetry-badge.svg]]
 
