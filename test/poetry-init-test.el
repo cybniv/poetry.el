@@ -7,7 +7,12 @@
     (find-file ppath)
     (poetry-init)
     (with-current-buffer "*poetry-init*"
-      (sleep-for 1)
+      (let ((time 0))
+        (while (and (not (progn (goto-char (point-min))
+                           (re-search-forward "Package name" nil t)))
+                    (< time 5))
+          (sleep-for 1)
+          (setq time (+ 1 time))))
       (goto-char (point-min))
       (should (re-search-forward "This command will guide you through creating your")))))
 
