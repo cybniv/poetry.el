@@ -744,17 +744,25 @@ If OPT is non-nil, set an optional dep."
      (let ((beg (point))
            (end (progn (re-search-forward "^\\[" nil t)
                        (point)))
-           (regex (if (not opt)
-                      "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*\"\\(.*\\)\""
-                    "^\\([^= ]*\\)[[:space:]]*=[[:space:]]*{version[[:space:]]*=[[:space:]]*\"\\(.*\\)\"[[:space:]]*,[[:space:]]*optional[[:space:]]*=[[:space:]]*true[[:space:]]*}$"))
-           deps)
+           (regex
+            "^\\(?1:[^= ]*\\)[[:space:]]*=[[:space:]]*\\({\\|\"\\)\\(?2:.*\\)\\(}\\|\"\\)")
+           deps
+           filtered-deps)
        (goto-char beg)
        (while (re-search-forward regex end t)
          (push (format "%s (%s)"
                        (substring-no-properties (match-string 1))
                        (substring-no-properties (match-string 2)))
                deps))
-       (reverse deps))))
+       ;; clean from opt/not opt deps
+       (dolist (dep deps)
+         (if opt
+             (when (string-match "optional = true" dep)
+               (push (replace-regexp-in-string ",?[[:space:]]*optional = true" "" dep)
+                     filtered-deps))
+           (when (not (string-match "optional = true" dep))
+               (push dep filtered-deps))))
+       filtered-deps)))
 
 (defvar-local poetry-project-name nil
   "Name of the current poetry project.")
