@@ -103,7 +103,7 @@
 ;; Transient interface
 ;;;;;;;;;;;;;;;;;;;;;;
 
-;;;###autoload
+;;;###autoload (autoload 'poetry "poetry" nil t)
 (define-transient-command poetry ()
   "Poetry menu."
   [:description (lambda ()
