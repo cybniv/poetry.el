@@ -615,7 +615,20 @@ compilation buffer name."
             (compilation-ask-about-save nil)
             (compilation-save-buffers-predicate (lambda () nil)))
         (save-window-excursion
-          (compile (concat prog " " (string-join args " "))))
+            (compile (concat prog " " (string-join args " "))))
+        ;; compilation hooks
+        (with-current-buffer (poetry-buffer-name)
+          (add-hook 'after-change-functions
+                    (lambda (beg end len)
+                      (ansi-color-apply-on-region beg end))
+                    nil t)
+          (setq-local compilation-finish-functions
+                      (append
+                       compilation-finish-functions
+                       (list
+                        #'poetry--clean-compilation-buffer
+                        #'poetry--indicate-compilation-end
+                        #'poetry--run-next-call-from-queue))))
         (setq poetry-process
               (get-buffer-process (get-buffer (poetry-buffer-name))))
         ;; Block until completion if asked
@@ -681,9 +694,6 @@ COMPIL-BUF is the current compilation buffer."
       (setq poetry-call-queue (cdr poetry-call-queue))
       (apply #'poetry-do-call call-args))))
 
-(add-to-list 'compilation-finish-functions #'poetry--run-next-call-from-queue)
-(add-to-list 'compilation-finish-functions #'poetry--clean-compilation-buffer)
-(add-to-list 'compilation-finish-functions #'poetry--indicate-compilation-end)
 
 
 ;; Helpers
