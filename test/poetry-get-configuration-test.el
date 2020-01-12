@@ -3,10 +3,10 @@
 (ert-deftest poetry-get-configuration-should-return-config ()
   (poetry-test-cleanup)
   ;; no error
-  (poetry-get-configuration "settings.virtualenvs.in-project")
+  (poetry-get-configuration "virtualenvs.in-project")
   (should (string-match "virtualenv"
                         (poetry-get-configuration
-                         "settings.virtualenvs.path"))))
+                         "virtualenvs.path"))))
 
   (ert-deftest poetry-get-configuration-should-error-for-unrecognized-key ()
     (poetry-test-cleanup)

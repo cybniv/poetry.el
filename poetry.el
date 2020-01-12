@@ -509,8 +509,8 @@ It ensures that your python scripts are always executed in the right environment
   :global t
   :group 'poetry
   (if poetry-tracking-mode
-      (add-hook 'projectile-after-switch-hook 'poetry-track-virtualenv)
-    (remove-hook 'projectile-after-switch-hook 'poetry-track-virtualenv)
+      (add-hook 'post-command-hook 'poetry-track-virtualenv)
+    (remove-hook 'post-command-hook 'poetry-track-virtualenv)
 
     ;; deactivate the current poetry virtualenv
     (when (and pyvenv-virtual-env
@@ -609,8 +609,9 @@ compilation buffer name."
                          (string= command "init"))
                      (cl-concatenate 'list (list (symbol-name command))
                                      args)
-                     (cl-concatenate 'list (list "-n" "--ansi"
-                                               (symbol-name command))
+                   (cl-concatenate 'list (list
+                                          (symbol-name command)
+                                          "-n" "--ansi")
                                    args))))
       (let ((compilation-buffer-name-function
              (lambda (_mode) (poetry-buffer-name)))
@@ -635,11 +636,7 @@ compilation buffer name."
               (get-buffer-process (get-buffer (poetry-buffer-name))))
         ;; Block until completion if asked
         (when blocking
-          (while (or (eq (process-status poetry-process) 'run)
-                      ;; Poetry buffer should be cleaned from compilation-mode verbose
-                     (with-current-buffer (poetry-buffer-name)
-                       (goto-char (point-min))
-                       (re-search-forward "mode: compilation;" nil t)))
+          (while (eq (process-status poetry-process) 'run)
             (sleep-for .1)))
         ;; Display the buffer if asked
         (if output
