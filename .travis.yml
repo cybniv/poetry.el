@@ -36,7 +36,7 @@ before_install:
   # verbose only needed because of cask bug
   - cask --verbose
 install:
-  - pip install poetry
+  - pip install 'poetry==1.0.0b9'
   - pip install coveralls
 script:
   - PYTHONPATH="`pwd`" cask exec ert-runner

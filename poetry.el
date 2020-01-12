@@ -511,6 +511,7 @@ It ensures that your python scripts are always executed in the right environment
   (if poetry-tracking-mode
       (add-hook 'post-command-hook 'poetry-track-virtualenv)
     (remove-hook 'post-command-hook 'poetry-track-virtualenv)
+
     ;; deactivate the current poetry virtualenv
     (when (and pyvenv-virtual-env
                (member (file-name-as-directory pyvenv-virtual-env)
@@ -604,11 +605,13 @@ compilation buffer name."
     (let* ((prog (or (executable-find "poetry")
                      (poetry-error "Could not find 'poetry' executable")))
            (args (if (or (string= command "run")
+                         (string= command "config")
                          (string= command "init"))
                      (cl-concatenate 'list (list (symbol-name command))
                                      args)
-                   (cl-concatenate 'list (list "-n" "--ansi"
-                                               (symbol-name command))
+                   (cl-concatenate 'list (list
+                                          (symbol-name command)
+                                          "-n" "--ansi")
                                    args))))
       (let ((compilation-buffer-name-function
              (lambda (_mode) (poetry-buffer-name)))
@@ -633,11 +636,7 @@ compilation buffer name."
               (get-buffer-process (get-buffer (poetry-buffer-name))))
         ;; Block until completion if asked
         (when blocking
-          (while (or (eq (process-status poetry-process) 'run)
-                      ;; Poetry buffer should be cleaned from compilation-mode verbose
-                     (with-current-buffer (poetry-buffer-name)
-                       (goto-char (point-min))
-                       (re-search-forward "mode: compilation;" nil t)))
+          (while (eq (process-status poetry-process) 'run)
             (sleep-for .1)))
         ;; Display the buffer if asked
         (if output
@@ -713,8 +712,8 @@ COMPIL-BUF is the current compilation buffer."
       (let* ((json-key-type 'string)
              (data (buffer-substring-no-properties
                     (point-min) (point-max)))
-             (config (json-read-from-string (replace-regexp-in-string
-                                "'" "\"" data))))
+             (config (replace-regexp-in-string
+                                "'" "\"" data)))
         (if (string= config ":json-false")
             nil
           config)))))
@@ -811,12 +810,12 @@ If OPT is non-nil, set an optional dep."
     (setq poetry-project-venv
           (or
            ;; virtualenvs in project
-           (if (poetry-get-configuration "settings.virtualenvs.in-project")
+           (if (poetry-get-configuration "virtualenvs.in-project")
                (concat (file-name-as-directory (poetry-find-project-root))
                        ".venv")
              ;; virtualenvs elsewhere
              (car (directory-files
-                   (poetry-get-configuration "settings.virtualenvs.path")
+                   (poetry-get-configuration "virtualenvs.path")
                    t
                    (format "%s-py"
                            (poetry-get-project-name)))))
