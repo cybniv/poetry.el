@@ -537,7 +537,8 @@ It ensures that your python scripts are always executed in the right environment
                    (not (member (file-name-as-directory pyvenv-virtual-env)
                                 poetry-venv-list)))
           (setq poetry-saved-venv pyvenv-virtual-env))
-        (add-to-list 'poetry-venv-list (file-name-as-directory poetry-venv))
+        (add-to-list 'poetry-venv-list (expand-file-name
+                                        (file-name-as-directory poetry-venv)))
         (pyvenv-activate poetry-venv))))
    ;; If not in a poetry project, deactivate the poetry virtualenv
    ((and pyvenv-virtual-env
