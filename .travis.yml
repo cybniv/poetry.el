@@ -14,29 +14,32 @@ matrix:
       - sudo: required
         dist: xenial
         python: 3.7
-        env: EVM_EMACS=emacs-25.1-travis
+        env: EVM_EMACS=emacs-25.1-travis POETRY_VIRTUALENVS_IN_PROJECT=1
       - sudo: required
         dist: xenial
         python: 3.7
-        env: EVM_EMACS=emacs-25.2-travis
+        env: EVM_EMACS=emacs-25.2-travis POETRY_VIRTUALENVS_IN_PROJECT=1
       - sudo: required
         dist: xenial
         python: 3.7
-        env: EVM_EMACS=emacs-25.3-travis
+        env: EVM_EMACS=emacs-25.3-travis POETRY_VIRTUALENVS_IN_PROJECT=1
 
 env:
-  - EVM_EMACS=emacs-25.1-travis
-  - EVM_EMACS=emacs-25.2-travis
-  - EVM_EMACS=emacs-25.3-travis
-  - EVM_EMACS=emacs-26.1-travis
-  - EVM_EMACS=emacs-26.2-travis
+  global:
+    - POETRY_VIRTUALENVS_IN_PROJECT=1
+  jobs:
+    - EVM_EMACS=emacs-25.1-travis
+    - EVM_EMACS=emacs-25.2-travis
+    - EVM_EMACS=emacs-25.3-travis
+    - EVM_EMACS=emacs-26.1-travis
+    - EVM_EMACS=emacs-26.2-travis
 before_install:
   - source ./travis-evm-cask.sh
   - evm install $EVM_EMACS --use --skip
   # verbose only needed because of cask bug
   - cask --verbose
 install:
-  - pip install 'poetry==1.0.0b9'
+  - pip install 'poetry==1.0.3'
   - pip install coveralls
 script:
   - PYTHONPATH="`pwd`" cask exec ert-runner
