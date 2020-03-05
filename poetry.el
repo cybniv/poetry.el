@@ -711,11 +711,11 @@ COMPIL-BUF is the current compilation buffer."
         (poetry-error "Unrecognized key configuration: %s" key))
       (goto-char (point-min))
       (let* ((json-key-type 'string)
-             (data (buffer-substring-no-properties
-                    (point-min) (point-max)))
+             (data (string-trim (buffer-substring-no-properties
+                                 (point-min) (point-max))))
              (config (replace-regexp-in-string
-                                "'" "\"" data)))
-        (if (string= config ":json-false")
+                      "'" "\"" data)))
+        (if (string= config "false")
             nil
           config)))))
 
