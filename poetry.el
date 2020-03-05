@@ -607,7 +607,8 @@ compilation buffer name."
                      (poetry-error "Could not find 'poetry' executable")))
            (args (if (or (string= command "run")
                          (string= command "config")
-                         (string= command "init"))
+                         (string= command "init")
+                         (string= command "env"))
                      (cl-concatenate 'list (list (symbol-name command))
                                      args)
                    (cl-concatenate 'list (list
@@ -698,6 +699,13 @@ COMPIL-BUF is the current compilation buffer."
 
 ;; Helpers
 ;;;;;;;;;;
+
+(defun poetry-get-env-info-path ()
+  (let ((bufname (poetry-call 'env '("info" "--path") nil nil t)))
+    (with-current-buffer bufname
+      (goto-char (point-min))
+      (string-trim (buffer-substring-no-properties
+                    (point-min) (point-max))))))
 
 (defun poetry-get-configuration (key)
   "Return Poetry configuration for KEY.
@@ -810,6 +818,8 @@ If OPT is non-nil, set an optional dep."
       poetry-project-venv
     (setq poetry-project-venv
           (or
+           ;; `poetry env info --path'
+           (poetry-get-env-info-path)
            ;; virtualenvs in project
            (if (poetry-get-configuration "virtualenvs.in-project")
                (concat (file-name-as-directory (poetry-find-project-root))
