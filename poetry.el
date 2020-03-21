@@ -710,14 +710,16 @@ COMPIL-BUF is the current compilation buffer."
               (re-search-forward "\\[ValueError\\]" nil t))
         (poetry-error "Unrecognized key configuration: %s" key))
       (goto-char (point-min))
+      ;; Parse as JSON if possible, otherwise return trimmed string
       (let* ((json-key-type 'string)
+	     (json-false nil)
              (data (buffer-substring-no-properties
                     (point-min) (point-max)))
-             (config (replace-regexp-in-string
-                                "'" "\"" data)))
-        (if (string= config ":json-false")
-            nil
-          config)))))
+             (rawconfig (replace-regexp-in-string
+                         "'" "\"" data)))
+	(condition-case nil
+	    (json-read-from-string rawconfig)
+	  (error (string-trim rawconfig)))))))
 
 (defun poetry-buffer-name (&optional suffix)
   "Return the poetry buffer name, using SUFFIX is specified."
