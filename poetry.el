@@ -520,7 +520,7 @@ This minor mode automatically activates the relevant Poetry virtualenv when visi
 It ensures that your python scripts are always executed in the right environment."
   :global t
   :group 'poetry
-  (case poetry-tracking-strategy
+  (cl-case poetry-tracking-strategy
     ('post-command
      (if poetry-tracking-mode
          (add-hook 'post-command-hook 'poetry-track-virtualenv)
