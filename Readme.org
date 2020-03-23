@@ -68,3 +68,5 @@ M-x poetry
     #+BEGIN_SRC elisp
 M-x poetry-tracking-mode
     #+END_SRC
+
+    By default, poetry.el checks if the virtualenv needs to be updated after every command. It has the advantage of always providing the right virtualenv, but can be annoyingly slow. You can change the strategy poetry.el uses through the ~poetry-tracking-strategy~.
