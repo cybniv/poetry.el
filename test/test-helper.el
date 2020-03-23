@@ -37,6 +37,8 @@
             (kill-buffer buff)))))
 
 (defun poetry-test-cleanup ()
+  ;; Just ensure nothing is still running
+  (poetry-wait-for-calls)
   (setq poetry-project-venv nil
         poetry-project-name nil
         poetry-project-root nil)

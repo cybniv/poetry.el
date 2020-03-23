@@ -47,6 +47,7 @@
 (require 'transient)
 (require 'pyvenv)
 (require 'subr-x)
+(require 'projectile nil t)
 
 
 ;; Variables
@@ -497,6 +498,18 @@ credential to use."
 
 Allow to re-enable the previous virtualenv when leaving the poetry project.")
 
+(defcustom poetry-tracking-strategy 'post-command
+  "When to check if it is necessary to update the current virtualenv.
+
+Can be:
+  - `post-command' (default): check after every command (can be quite slow but ensure
+that the virtualenv is always the good one).
+  - `projectile': check when switching to another projectile project (faster, but doesn't work if you change buffer with something else than `projectile-switch-project').
+  - `switch-buffer': check when switching buffer (faster but not bullet-proof, depending on what you use to switch buffer)."
+  :type '(choice (const :tag "Check after every command" 'post-command)
+                 (const :tag "Check when switching project" 'projectile)
+                 (const :tag "Check when switching buffer" 'switch-buffer)))
+
 
 ;;;###autoload
 (define-minor-mode poetry-tracking-mode
@@ -509,10 +522,54 @@ It ensures that your python scripts are always executed in the right environment
   :global t
   :group 'poetry
   (if poetry-tracking-mode
-      (add-hook 'post-command-hook 'poetry-track-virtualenv)
+      ;; Add hooks/advices depending on strategy
+      (cl-case poetry-tracking-strategy
+        ('post-command
+         (add-hook 'post-command-hook 'poetry-track-virtualenv))
+        ('projectile
+         (unless (boundp 'projectile-before-switch-project-hook)
+           (error "You need projectile to use the `projectile' tracking strategy. Please install projectile or set `poetry-tracking-strategy' to another value"))
+         (add-hook 'projectile-before-switch-project-hook
+                   'poetry-track-virtualenv)
+         (poetry-track-virtualenv))
+        ('switch-buffer
+         (add-hook 'find-file-hook 'poetry-track-virtualenv)
+         (advice-add 'kill-buffer
+                     :around
+                     (lambda (func &rest args)
+                       (let* ((next-buffer-name (buffer-file-name
+                                                 (other-buffer)))
+                              (both-file-buffers (and next-buffer-name
+                                                      buffer-file-name)))
+                         (apply func args)
+                         (when both-file-buffers (poetry-track-virtualenv))))
+                     '((name . "poetry-tracking-on-buffer-kill")))
+         (advice-add 'switch-to-buffer
+                     :after
+                     (lambda (&rest args)
+                       (when buffer-file-name (poetry-track-virtualenv)))
+                     '((name . "poetry-tracking-on-buffer-switch")))
+         (advice-add 'windmove-do-window-select
+                     :after
+                     (lambda (&rest args)
+                       (when buffer-file-name (poetry-track-virtualenv)))
+                     '((name . "poetry-tracking-on-window-selection"))))
+        (poetry-track-virtualenv)
+        (t
+         (error "Please set `poetry-tracking-strategy' to something I understand")))
+    ;; Remove hooks/advices
     (remove-hook 'post-command-hook 'poetry-track-virtualenv)
-
-    ;; deactivate the current poetry virtualenv
+    (when (boundp 'projectile-before-switch-project-hook)
+      (remove-hook 'projectile-before-switch-project-hook
+                   'poetry-track-virtualenv))
+    (remove-hook 'find-file-hook 'poetry-track-virtualenv)
+    (advice-remove 'kill-buffer
+                   "poetry-tracking-on-buffer-kill")
+    (advice-remove 'switch-to-buffer
+                   "poetry-tracking-on-buffer-switch")
+    (advice-remove 'windmove-do-window-select
+                   "poetry-tracking-on-window-selection")
+    ;; Deactivate the current poetry virtualenv
     (when (and pyvenv-virtual-env
                (member (file-name-as-directory pyvenv-virtual-env)
                        poetry-venv-list))
@@ -820,7 +877,7 @@ If OPT is non-nil, set an optional dep."
              (car (directory-files
                    (poetry-get-configuration "virtualenvs.path")
                    t
-                   (format "%s-py"
+                   (format "^%s-.+-py.*$"
                            (poetry-get-project-name)))))
            nil))))
 

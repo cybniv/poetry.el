@@ -59,7 +59,7 @@
       (find-file ppath2)
       (should-error (poetry-venv-deactivate)))))
 
-(ert-deftest poetry-should-track-virtualenvs ()
+(ert-deftest poetry-should-track-virtualenvs-with-post-command ()
   (poetry-test-cleanup)
   (cl-letf (((symbol-function 'pyvenv-activate)
              (lambda (dir)
@@ -68,7 +68,8 @@
              (lambda (dir &optional full match nosort)
                (list (concat (file-name-as-directory dir)
                              (poetry-normalize-project-name (poetry-get-project-name)))))))
-    (let* ((ppath (poetry-test-create-project-folder))
+    (let* ((poetry-tracking-strategy 'post-command)
+           (ppath (poetry-test-create-project-folder))
            (project-path (file-name-directory
                           (directory-file-name
                            (file-name-directory ppath))))
@@ -98,6 +99,93 @@
       ;; directory 3 (not poetry)
       (find-file not-project-path)
       (run-hooks 'post-command-hook)
+      (should (not pyvenv-virtual-env))
+      ;;
+      (poetry-tracking-mode -1))))
+
+(ert-deftest poetry-should-track-virtualenvs-with-projectile ()
+  (when (boundp 'projectile-before-switch-project-hook)
+    (poetry-test-cleanup)
+    (cl-letf (((symbol-function 'pyvenv-activate)
+               (lambda (dir)
+                 (setq pyvenv-virtual-env dir)))
+              ((symbol-function 'directory-files)
+               (lambda (dir &optional full match nosort)
+                 (list (concat (file-name-as-directory dir)
+                               (poetry-normalize-project-name (poetry-get-project-name)))))))
+      (let* ((poetry-tracking-strategy 'projectile)
+             (ppath (poetry-test-create-project-folder))
+             (project-path (file-name-directory
+                            (directory-file-name
+                             (file-name-directory ppath))))
+             (ppath2 (poetry-test-create-project-folder))
+             (project-path2 (file-name-directory
+                             (directory-file-name
+                              (file-name-directory ppath2))))
+             (not-project-path (make-temp-file "poetry-not-project")))
+        (find-file ppath)
+        (poetry-add-dep "atomicwrites")
+        (poetry-wait-for-calls)
+        (find-file ppath2)
+        (poetry-add-dep "attrs")
+        (poetry-wait-for-calls)
+        (find-file not-project-path)
+        (poetry-tracking-mode 1)
+        ;; project 1
+        (find-file (concat (file-name-as-directory ppath)
+                           "file1.py"))
+        (run-hooks 'projectile-before-switch-project-hook)
+        (should (string-match (concat project-path ".venv") pyvenv-virtual-env))
+        ;; project 2
+        (find-file (concat (file-name-as-directory ppath2)
+                           "file1.py"))
+        (run-hooks 'projectile-before-switch-project-hook)
+        (should (string-match (concat project-path2 ".venv") pyvenv-virtual-env))
+        ;; directory 3 (not poetry)
+        (find-file not-project-path)
+        (run-hooks 'projectile-before-switch-project-hook)
+        (should (not pyvenv-virtual-env))
+        ;;
+        (poetry-tracking-mode -1)))))
+
+(ert-deftest poetry-should-track-virtualenvs-with-buffer-switch ()
+  (poetry-test-cleanup)
+  (cl-letf (((symbol-function 'pyvenv-activate)
+             (lambda (dir)
+               (setq pyvenv-virtual-env dir)))
+            ((symbol-function 'directory-files)
+             (lambda (dir &optional full match nosort)
+               (list (concat (file-name-as-directory dir)
+                             (poetry-normalize-project-name (poetry-get-project-name)))))))
+    (let* ((poetry-tracking-strategy 'switch-buffer)
+           (ppath (poetry-test-create-project-folder))
+           (project-path (file-name-directory
+                          (directory-file-name
+                           (file-name-directory ppath))))
+           (ppath2 (poetry-test-create-project-folder))
+           (project-path2 (file-name-directory
+                          (directory-file-name
+                           (file-name-directory ppath2))))
+           (not-project-path (make-temp-file "poetry-not-project")))
+      (find-file ppath)
+      (poetry-add-dep "atomicwrites")
+      (poetry-wait-for-calls)
+      (find-file ppath2)
+      (poetry-add-dep "attrs")
+      (poetry-wait-for-calls)
+      (find-file not-project-path)
+      (poetry-tracking-mode 1)
+      ;; project 1
+      (find-file (concat (file-name-as-directory ppath)
+                         "file1.py"))
+      (should (string-match (concat project-path ".venv") pyvenv-virtual-env))
+      ;; project 2
+      (find-file (concat (file-name-as-directory ppath2)
+                         "file1.py"))
+      (should (string-match (concat project-path2 ".venv") pyvenv-virtual-env))
+      ;; directory 3 (not poetry)
+      (find-file not-project-path)
+      (run-hooks 'find-file-hook)
       (should (not pyvenv-virtual-env))
       ;;
       (poetry-tracking-mode -1))))
@@ -203,7 +291,9 @@
       (find-file ppath)
       (poetry-add-dep "atomicwrites")
       (poetry-wait-for-calls)
-      (mkdir (format "/tmp/venv-test/%s-py3.7" (poetry-get-project-name)) t)
+      (mkdir (format "/tmp/venv-test/%s-foobar-py3.8"
+                     (poetry-get-project-name))
+             t)
       (should (poetry-venv-exist-p))
       (delete-directory (poetry-get-virtualenv) t)
       (should (not (poetry-venv-exist-p))))))
@@ -272,7 +362,8 @@
                 nil))))
     (let ((ppath (poetry-test-create-project-folder)))
       (make-directory (format "/tmp/venv-test/%s"
-                              (format "%s-py" (poetry-get-project-name)))
+                              (format "%s-foobar-py3.8"
+                                      (poetry-get-project-name)))
                       t)
       (find-file ppath)
       (poetry-wait-for-calls)
