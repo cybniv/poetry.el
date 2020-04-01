@@ -194,6 +194,26 @@
   :argument "--platform=")
 
 
+;; Poetry install
+(define-transient-command poetry-install ()
+  "Poetry install dependency menu."
+  ["Arguments"
+   ("-d" "Output the operations but do not execute anything" (nil "--dry-run"))
+   ("-R" "Do not install the root package" (nil "--no-root"))
+   ("-D" "Do not install the dev packages" (nil "--no-dev"))
+   (poetry:--extras)
+   ]
+  ["Install"
+   ("i" "install dependencies" poetry-install-install)
+   ])
+
+(define-infix-argument poetry:--extras ()
+  :description "Extra sets of dependencies to install"
+  :class 'transient-option
+  :key "-E"
+  :argument "--extras=")
+
+
 ;; Poetry functions
 ;;;;;;;;;;;;;;;;;;;
 
@@ -292,10 +312,11 @@ TYPE is the type of dependency (dep, dev or opt)."
   (poetry-call 'check nil nil t t))
 
 ;;;###autoload
-(defun poetry-install ()
+(defun poetry-install-install ()
   "Install the project dependencies."
   (interactive)
-  (poetry-call 'install))
+  (let ((args (transient-args 'poetry-install)))
+    (poetry-call 'install args)))
 
 ;;;###autoload
 (defun poetry-lock ()
@@ -878,7 +899,7 @@ If OPT is non-nil, set an optional dep."
                    (poetry-get-configuration "virtualenvs.path")
                    t
                    (format "^%s-.+-py.*$"
-                           (poetry-get-project-name)))))
+                           (downcase (poetry-get-project-name))))))
            nil))))
 
 (defun poetry-find-pyproject-file ()

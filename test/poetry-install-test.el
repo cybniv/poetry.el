@@ -7,7 +7,7 @@
     (find-file ppath)
     (poetry-add-dep "atomicwrites")
     (poetry-add-dep "attrs")
-    (poetry-install)
+    (poetry-install-install)
     (poetry-wait-for-calls)
     (should (with-current-buffer "*poetry*"
               (goto-char (point-min))
