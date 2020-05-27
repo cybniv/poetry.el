@@ -5,8 +5,8 @@
 ;; Author: Gaby Launay <gaby.launay@protonmail.com>
 ;; URL: https://github.com/galaunay/poetry.el
 ;; Keywords: Python, Tools
-;; Package-Version: 0.1.0
-;; Package-Requires: ((transient "0.1.0") (pyvenv "1.2") (emacs "25.1"))
+;; Package-Version: 0.2.0
+;; Package-Requires: ((transient "0.2.0") (pyvenv "1.2") (emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
