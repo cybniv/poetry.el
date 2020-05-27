@@ -292,7 +292,7 @@
       (poetry-add-dep "atomicwrites")
       (poetry-wait-for-calls)
       (mkdir (format "/tmp/venv-test/%s-foobar-py3.8"
-                     (poetry-get-project-name))
+                     (downcase (poetry-get-project-name)))
              t)
       (should (poetry-venv-exist-p))
       (delete-directory (poetry-get-virtualenv) t)
@@ -363,7 +363,7 @@
     (let ((ppath (poetry-test-create-project-folder)))
       (make-directory (format "/tmp/venv-test/%s"
                               (format "%s-foobar-py3.8"
-                                      (poetry-get-project-name)))
+                                      (downcase (poetry-get-project-name))))
                       t)
       (find-file ppath)
       (poetry-wait-for-calls)
