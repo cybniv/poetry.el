@@ -899,7 +899,7 @@ If OPT is non-nil, set an optional dep."
                    (poetry-get-configuration "virtualenvs.path")
                    t
                    (format "^%s-.+-py.*$"
-                           (downcase (poetry-get-project-name))))))
+                           (downcase (replace-regexp-in-string "_" "-" (poetry-get-project-name)))))))
            nil))))
 
 (defun poetry-find-pyproject-file ()
