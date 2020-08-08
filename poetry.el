@@ -479,12 +479,11 @@ credential to use."
   (interactive)
   (when poetry-tracking-mode
     (poetry-error "The current virtualenv has been set automatically by poetry tracking mode, deactivate the tracking mode to deactivate this virtualenv"))
-  (let ((venv (poetry-get-virtualenv)))
-    (if (not pyvenv-virtual-env)
-        (poetry-error "No virtualenv activated")
-      (if (not (poetry-venv-activated-p))
-          (poetry-error "Current poetry virtualenv not activated")
-        (pyvenv-deactivate)))))
+  (if (not pyvenv-virtual-env)
+      (poetry-error "No virtualenv activated")
+    (if (not (poetry-venv-activated-p))
+        (poetry-error "Current poetry virtualenv not activated")
+      (pyvenv-deactivate))))
 
 ;;;###autoload
 (defun poetry-venv-toggle ()
@@ -567,12 +566,12 @@ It ensures that your python scripts are always executed in the right environment
                      '((name . "poetry-tracking-on-buffer-kill")))
          (advice-add 'switch-to-buffer
                      :after
-                     (lambda (&rest args)
+                     (lambda (&rest _args)
                        (when buffer-file-name (poetry-track-virtualenv)))
                      '((name . "poetry-tracking-on-buffer-switch")))
          (advice-add 'windmove-do-window-select
                      :after
-                     (lambda (&rest args)
+                     (lambda (&rest _args)
                        (when buffer-file-name (poetry-track-virtualenv)))
                      '((name . "poetry-tracking-on-window-selection"))))
         (poetry-track-virtualenv)
@@ -701,7 +700,7 @@ compilation buffer name."
         ;; compilation hooks
         (with-current-buffer (poetry-buffer-name)
           (add-hook 'after-change-functions
-                    (lambda (beg end len)
+                    (lambda (beg end _len)
                       (ansi-color-apply-on-region beg end))
                     nil t)
           (setq-local compilation-finish-functions
