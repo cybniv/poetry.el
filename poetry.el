@@ -527,9 +527,9 @@ Can be:
 that the virtualenv is always the good one).
   - `projectile': check when switching to another projectile project (faster, but doesn't work if you change buffer with something else than `projectile-switch-project').
   - `switch-buffer': check when switching buffer (faster but experimental and not bullet-proof, depending on what you use to switch buffer)."
-  :type '(choice (const :tag "Check after every command" 'post-command)
-                 (const :tag "Check when switching project" 'projectile)
-                 (const :tag "Check when switching buffer" 'switch-buffer)))
+  :type '(choice (const :tag "Check after every command" post-command)
+                 (const :tag "Check when switching project" projectile)
+                 (const :tag "Check when switching buffer" switch-buffer)))
 
 
 ;;;###autoload
