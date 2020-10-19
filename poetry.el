@@ -898,7 +898,9 @@ If OPT is non-nil, set an optional dep."
                    (poetry-get-configuration "virtualenvs.path")
                    t
                    (format "^%s-.+-py.*$"
-                           (downcase (replace-regexp-in-string "_" "-" (poetry-get-project-name)))))))
+                           ;; regexp based on Poetry's `EnvManager.generate_env_name` method
+                           ;; see the source here: https://github.com/python-poetry/poetry/blob/master/poetry/utils/env.py
+                           (downcase (replace-regexp-in-string "[ $`!*@\"\\\r\n\t]" "_" (poetry-get-project-name)))))))
            nil))))
 
 (defun poetry-find-pyproject-file ()
