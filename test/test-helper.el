@@ -3,6 +3,9 @@
 (let ((poetry-dir (f-parent (f-dirname (f-this-file)))))
   (add-to-list 'load-path poetry-dir))
 
+(require 'pyvenv)
+(setq poetry-tmp-starting-venv pyvenv-virtual-env)
+
 ;; coverage
 (when (require 'undercover nil t)
   (undercover "*.el"))
@@ -44,6 +47,8 @@
         poetry-project-root nil)
   (poetry-tracking-mode -1)
   (pyvenv-deactivate)
+  (when poetry-tmp-starting-venv
+    (pyvenv-activate poetry-tmp-starting-venv))
   (poetry-kill-all-buffers))
 
 ;;; test-helper.el ends here

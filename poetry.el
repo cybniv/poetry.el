@@ -395,7 +395,7 @@ credential to use."
     (save-buffer)
     ;; make sure the virtualenv is created
     (poetry-message "Creating the virtual environment...")
-    (poetry-call 'run (split-string "python -V" "[[:space:]]+" t) nil nil t)
+    (poetry-call 'env '("use" "python") nil nil t)
     (poetry-message "Done")
     ;; If tracking virtualenv, update the virtualenv
     (when poetry-tracking-mode
@@ -785,7 +785,7 @@ COMPIL-BUF is the current compilation buffer."
     (with-current-buffer bufname
       (when (progn
               (goto-char (point-min))
-              (re-search-forward "\\[ValueError\\]" nil t))
+              (re-search-forward "ValueError" nil t))
         (poetry-error "Unrecognized key configuration: %s" key))
       (goto-char (point-min))
       ;; Parse as JSON if possible, otherwise return trimmed string
