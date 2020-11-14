@@ -684,6 +684,7 @@ compilation buffer name."
                      (poetry-error "Could not find 'poetry' executable")))
            (args (if (or (string= command "run")
                          (string= command "config")
+                         (string= command "env")
                          (string= command "init"))
                      (cl-concatenate 'list (list (symbol-name command))
                                      args)
@@ -894,11 +895,16 @@ If OPT is non-nil, set an optional dep."
                (concat (file-name-as-directory (poetry-find-project-root))
                        ".venv")
              ;; virtualenvs elsewhere
-             (car (directory-files
-                   (poetry-get-configuration "virtualenvs.path")
-                   t
-                   (format "^%s-.+-py.*$"
-                           (downcase (replace-regexp-in-string "_" "-" (poetry-get-project-name)))))))
+             (let ((bufname (poetry-call 'env (list "info" "-p") nil nil t)))
+               (with-current-buffer bufname
+                 (when (progn
+                         (goto-char (point-min))
+                         (re-search-forward "\\[RuntimeError\\]" nil t))
+                   (poetry-error "Not in a poetry project directory"))
+                 (goto-char (point-min))
+                 (let ((data (buffer-substring-no-properties
+                               (point-min) (point-max))))
+                     (string-trim data)))))
            nil))))
 
 (defun poetry-find-pyproject-file ()
