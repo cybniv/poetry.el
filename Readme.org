@@ -6,6 +6,12 @@
 [[https://melpa.org/#/poetry][file:https://melpa.org/packages/poetry-badge.svg]]
 [[https://stable.melpa.org/#/poetry][file:https://stable.melpa.org/packages/poetry-badge.svg]]
 
+* *Important notice*
+
+I am not currently able to maintain this project. 
+I will be happy for anyone to fork it and take over (It is not a big project, so it doesn't require too much time).
+If you are interested, please contact me.
+
 * Poetry.el
 
   [[https://poetry.eustace.io/][Poetry]] in Emacs.
