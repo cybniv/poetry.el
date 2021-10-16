@@ -879,8 +879,13 @@ If OPT is non-nil, set an optional dep."
 (defun poetry-find-project-root ()
   "Return the poetry project root if any."
   (or poetry-project-root
-      (setq poetry-project-root
-            (locate-dominating-file default-directory "pyproject.toml"))))
+      (when-let* ((root (locate-dominating-file default-directory "pyproject.toml"))
+                  (pyproject-contents
+                   (with-temp-buffer
+                     (insert-file-contents-literally (concat (file-name-as-directory root) "pyproject.toml"))
+                     (buffer-string)))
+                  (_ (string-match "^\\[tool\\.poetry]$" pyproject-contents)))
+        (setq poetry-project-root root))))
 
 (defun poetry-get-virtualenv ()
   "Return the current poetry project virtualenv, or nil if it does not exist."
