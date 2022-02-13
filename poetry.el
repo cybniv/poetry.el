@@ -680,7 +680,7 @@ compilation buffer name."
                                default-directory)))
     (unless (member command '(new init config))
       (poetry-ensure-in-project))
-    (let* ((prog (or (concat "env -u VIRTUAL_ENV " (executable-find "poetry"))
+    (let* ((prog (or (concat "env -u VIRTUAL_ENV " (executable-find "poetry" t))
                      (poetry-error "Could not find 'poetry' executable")))
            (args (if (or (string= command "run")
                          (string= command "config")
