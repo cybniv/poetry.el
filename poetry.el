@@ -105,7 +105,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;###autoload (autoload 'poetry "poetry" nil t)
-(define-transient-command poetry ()
+(transient-define-prefix poetry ()
   "Poetry menu."
   [:description (lambda ()
                   (let ((project-name (poetry-get-project-name)))
@@ -155,7 +155,7 @@
    ;;  ("U" "Update" poetry-self-update)]])
 
 ;; Poetry add
-(define-transient-command poetry-add ()
+(transient-define-prefix poetry-add ()
   "Poetry add dependency menu."
   ["Arguments"
    (poetry:--git)
@@ -169,25 +169,25 @@
    ("o" "Add an optional dependency" poetry-add-opt-dep)
    ])
 
-(define-infix-argument poetry:--git ()
+(transient-define-argument poetry:--git ()
   :description "Git repository"
   :class 'transient-option
   :key "-g"
   :argument "--git=")
 
-(define-infix-argument poetry:--path ()
+(transient-define-argument poetry:--path ()
   :description "Dependency path"
   :class 'transient-option
   :key "-P"
   :argument "--path=")
 
-(define-infix-argument poetry:--python ()
+(transient-define-argument poetry:--python ()
   :description "Python version"
   :class 'transient-option
   :key "-p"
   :argument "--python=")
 
-(define-infix-argument poetry:--platform ()
+(transient-define-argument poetry:--platform ()
   :description "Platforms"
   :class 'transient-option
   :key "-t"
@@ -195,7 +195,7 @@
 
 
 ;; Poetry install
-(define-transient-command poetry-install ()
+(transient-define-prefix poetry-install ()
   "Poetry install dependency menu."
   ["Arguments"
    ("-d" "Output the operations but do not execute anything" (nil "--dry-run"))
@@ -207,7 +207,7 @@
    ("i" "install dependencies" poetry-install-install)
    ])
 
-(define-infix-argument poetry:--extras ()
+(transient-define-argument poetry:--extras ()
   :description "Extra sets of dependencies to install"
   :class 'transient-option
   :key "-E"
