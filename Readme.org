@@ -1,16 +1,15 @@
 
-[[https://travis-ci.org/galaunay/poetry.el][https://travis-ci.org/galaunay/poetry.el.svg?branch=master]]
 [[https://coveralls.io/github/galaunay/poetry.el?branch=master][https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master]]
 [[https://github.com/galaunay/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
-[[https://www.python.org/download][https://img.shields.io/badge/python-3.5+-blue.svg]]
+[[https://www.python.org/download][https://img.shields.io/badge/python-3.7+-blue.svg]]
 [[https://melpa.org/#/poetry][file:https://melpa.org/packages/poetry-badge.svg]]
 [[https://stable.melpa.org/#/poetry][file:https://stable.melpa.org/packages/poetry-badge.svg]]
 
 * *Important notice*
 
-I am not currently able to maintain this project. 
-I will be happy for anyone to fork it and take over (It is not a big project, so it doesn't require too much time).
-If you are interested, please contact me.
+I recently took over maintaining this project. I actively use this package with GNU Emacs 28.2 and poetry 1.2.0 on macOS.
+I'll look into testing different versions and operating systems via CI soon.
+
 
 * Poetry.el
 
