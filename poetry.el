@@ -3,7 +3,7 @@
 ;; Copyright (C) 2019-  Gaby Launay
 
 ;; Author: Gaby Launay <gaby.launay@protonmail.com>
-;; URL: https://github.com/galaunay/poetry.el
+;; URL: https://github.com/cybniv/poetry.el
 ;; Keywords: Python, Tools
 ;; Package-Version: 0.2.0
 ;; Package-Requires: ((transient "0.2.0") (pyvenv "1.2") (emacs "25.1"))
@@ -24,13 +24,13 @@
 
 ;;; Commentary:
 
-;; This package offers an interface to poetry (https://poetry.eustace.io/),
+;; This package offers an interface to poetry (https://python-poetry.org/),
 ;; a Python dependency management and packaging command line tool.
 
-;; Poetry.el uses transient to provide a magit-like interface. The
+;; poetry.el uses transient to provide a magit-like interface. The
 ;; entry point is simply: `poetry'
 
-;; Poetry.el also provides a global minor mode that automatically
+;; poetry.el also provides a global minor mode that automatically
 ;; activates the associated virtualenv when visiting a poetry project.
 ;; You can activate this feature with `poetry-tracking-mode'.
 
@@ -72,7 +72,7 @@
   :type 'string)
 
 (make-obsolete-variable 'poetry-virtualenv-path
-                        "Poetry.el now reads the virtualenvs path from Poetry settings. Please use `poetry config` to change the virtualenvs path."
+                        "poetry.el now reads the virtualenvs path from Poetry settings. Please use `poetry config` to change the virtualenvs path."
                         nil "0.2.0")
 
 (defcustom poetry-repository-list '("pypi")
@@ -80,7 +80,7 @@
   :type '(repeat string))
 
 (make-obsolete-variable 'poetry-repository-list
-                        "Poetry.el now reads the repository list from Poetry settings. Please use `poetry config` to change the list of available repositories."
+                        "poetry.el now reads the repository list from Poetry settings. Please use `poetry config` to change the list of available repositories."
                         nil "0.2.0")
 
 

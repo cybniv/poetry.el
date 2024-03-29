@@ -1,30 +1,26 @@
-
-[[https://coveralls.io/github/galaunay/poetry.el?branch=master][https://coveralls.io/repos/github/galaunay/poetry.el/badge.svg?branch=master]]
-[[https://github.com/galaunay/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
+[[https://github.com/cybniv/poetry.el/blob/master/LICENSE][https://img.shields.io/badge/license-GPL-brightgreen.svg]]
 [[https://www.python.org/download][https://img.shields.io/badge/python-3.7+-blue.svg]]
 [[https://melpa.org/#/poetry][file:https://melpa.org/packages/poetry-badge.svg]]
 [[https://stable.melpa.org/#/poetry][file:https://stable.melpa.org/packages/poetry-badge.svg]]
 
 * *Important notice*
 
-I recently took over maintaining this project. I actively use this package with GNU Emacs 28.2 and poetry 1.2.0 on macOS.
-I'll look into testing different versions and operating systems via CI soon.
+I recently took over maintaining this project. I actively use this package with GNU Emacs 29.3 and poetry 1.8.2 on macOS.
 
+* poetry.el
 
-* Poetry.el
-
-  [[https://poetry.eustace.io/][Poetry]] in Emacs.
+[[https://python-poetry.org][Poetry]] in Emacs.
 
   From Poetry documentation:
   "Poetry is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you."
 
-  ~Poetry.el~ is a wrapper around Poetry, offering a simple an intuitive interface in Emacs.
+  ~poetry.el~ is a wrapper around Poetry, offering a simple an intuitive interface in Emacs.
 
 ** Installation
 
 *** From Melpa
 
-Poetry.el is available on Melpa, the most straightforward way of installing it is to use ~use-package~:
+poetry.el is available on Melpa, the most straightforward way of installing it is to use ~use-package~:
 
 #+BEGIN_SRC elisp
 (use-package poetry
@@ -35,13 +31,13 @@ Poetry.el is available on Melpa, the most straightforward way of installing it i
 
    1. Dependencies
 
-      Poetry.el needs ~transient~ and ~pyvenv~ to be installed.
+      poetry.el needs ~transient~ and ~pyvenv~ to be installed.
       These packages are both available on MELPA.
 
    2. Clone the ~poetry.el~ repository:
 
       #+BEGIN_SRC bash
-      $ git clone https://github.com/galaunay/poetry.el /path/to/poetry.el
+      $ git clone https://github.com/cybniv/poetry.el /path/to/poetry.el
       #+END_SRC
 
    3. Add the following lines to ~.emacs.el~ (or equivalent):
@@ -54,7 +50,7 @@ Poetry.el is available on Melpa, the most straightforward way of installing it i
 
 ** Usage
 
-   Poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
+   poetry.el uses [[https://github.com/magit/transient][transient]] to provide a magit-like interface.
    The entry point is simply:
    #+BEGIN_SRC elisp
 M-x poetry
@@ -64,11 +60,11 @@ M-x poetry
    #+attr_html: :width 400px
    [[doc/screenshot1.png]]
 
-   For users not familiar with how ~Poetry~ works, the [[https://poetry.eustace.io/docs/][documentation]] is a great place to start.
+   For users not familiar with how ~Poetry~ works, the [[https://python-poetry.org/docs/][documentation]] is a great place to start.
 
 
 *** Tracking Poetry virtualenv
-    ~Poetry.el~ also provides a global minor mode that automatically activate the correct virtualenv when visiting Poetry project files.
+    ~poetry.el~ also provides a global minor mode that automatically activate the correct virtualenv when visiting Poetry project files.
     You can activate this feature with:
     #+BEGIN_SRC elisp
 M-x poetry-tracking-mode
