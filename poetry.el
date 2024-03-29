@@ -888,7 +888,7 @@ If OPT is non-nil, set an optional dep."
                    (with-temp-buffer
                      (insert-file-contents-literally (concat (file-name-as-directory root) "pyproject.toml"))
                      (buffer-string)))
-                  (_ (string-match "^\\[tool\\.poetry]" pyproject-contents)))
+                  (_ (string-match "^\\[tool\\.poetry\\]" pyproject-contents)))
         (setq poetry-project-root root))))
 
 (defun poetry-get-virtualenv ()
