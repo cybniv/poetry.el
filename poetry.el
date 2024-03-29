@@ -431,7 +431,7 @@ credential to use."
                (poetry-with-current-file file
                 (goto-char (point-min))
                 (when (re-search-forward
-                       "^\\[tool\\.poetry\\.scripts\\]$" nil t)
+                       "^\\[tool\\.poetry\\.scripts\\]" nil t)
                   (forward-line 1)
                   (beginning-of-line)
                   (while (re-search-forward
@@ -828,11 +828,11 @@ If OPT is non-nil, set an optional dep."
      (goto-char (point-min))
      (if dev
          (unless
-             (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]$"
+             (re-search-forward "^\\[tool\\.poetry\\.dev-dependencies\\]"
                                 nil t)
            (poetry-error "No dependencies to remove"))
        (unless
-              (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]$"
+              (re-search-forward "^\\[tool\\.poetry\\.dependencies\\]"
                                  nil t)
          (poetry-error "No dependencies to remove")))
      (let ((beg (point))
@@ -875,7 +875,7 @@ If OPT is non-nil, set an optional dep."
               (when file
                 (poetry-with-current-file file
                    (goto-char (point-min))
-                   (when (re-search-forward "^\\[tool\\.poetry\\]$" nil t)
+                   (when (re-search-forward "^\\[tool\\.poetry\\]" nil t)
                      (when (re-search-forward "^name = \"\\(.*\\)\"$" nil t)
                        (substring-no-properties (match-string 1))))))))))
 
@@ -888,7 +888,7 @@ If OPT is non-nil, set an optional dep."
                    (with-temp-buffer
                      (insert-file-contents-literally (concat (file-name-as-directory root) "pyproject.toml"))
                      (buffer-string)))
-                  (_ (string-match "^\\[tool\\.poetry\\]$" pyproject-contents)))
+                  (_ (string-match "^\\[tool\\.poetry\\]" pyproject-contents)))
         (setq poetry-project-root root))))
 
 (defun poetry-get-virtualenv ()
