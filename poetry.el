@@ -525,9 +525,11 @@ Can be:
   - `post-command' (default): check after every command (can be quite slow but ensure
 that the virtualenv is always the good one).
   - `projectile': check when switching to another projectile project (faster, but doesn't work if you change buffer with something else than `projectile-switch-project').
+  - `project': check when switching to another project.el project (faster, but requires at least emacs 28.1 and doesn't work if you change buffer with something else than `project-switch-project').
   - `switch-buffer': check when switching buffer (faster but experimental and not bullet-proof, depending on what you use to switch buffer)."
   :type '(choice (const :tag "Check after every command" post-command)
-                 (const :tag "Check when switching project" projectile)
+                 (const :tag "Check when switching projectile project" projectile)
+                 (const :tag "Check when switching project.el project" project)
                  (const :tag "Check when switching buffer" switch-buffer)))
 
 
@@ -551,6 +553,14 @@ It ensures that your python scripts are always executed in the right environment
            (error "You need projectile to use the `projectile' tracking strategy. Please install projectile or set `poetry-tracking-strategy' to another value"))
          (add-hook 'projectile-before-switch-project-hook
                    'poetry-track-virtualenv)
+         (poetry-track-virtualenv))
+        ('project
+         (if (version< emacs-version "28.1")
+             (error "You need at least emacs 28.1 to use the `project' tracking strategy. Please update your emacs installation or set `poetry-tracking-strategy' to another value"))
+         (advice-add 'project-switch-project
+                     :after
+                     (lambda (&rest _args)
+                       (poetry-track-virtualenv)))
          (poetry-track-virtualenv))
         ('switch-buffer
          (add-hook 'find-file-hook 'poetry-track-virtualenv)
