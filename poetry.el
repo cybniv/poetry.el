@@ -83,6 +83,9 @@
                         "poetry.el now reads the repository list from Poetry settings. Please use `poetry config` to change the list of available repositories."
                         nil "0.2.0")
 
+(defcustom poetry-command "poetry"
+  "The poetry command."
+  :type 'string)
 
 ;; Macros
 ;;;;;;;;;
@@ -691,10 +694,10 @@ compilation buffer name."
     (unless (member command '(new init config))
       (poetry-ensure-in-project))
     (let* ((prog (or (cond ((eq system-type 'gnu/linux)
-                            (concat "env -u VIRTUAL_ENV " (executable-find "poetry" t)))
+                            (concat "env -u VIRTUAL_ENV " (executable-find poetry-command t)))
                            ((or (eq system-type 'berkeley-unix)
                                 (eq system-type 'darwin))
-                            (executable-find "poetry" t)))
+                            (executable-find poetry-command t)))
                      (poetry-error "Could not find 'poetry' executable")))
            (args (if (or (string= command "run")
                          (string= command "config")
